@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+
+{% block content_title %}
+    <h3>
+        <small>
+            PORTFOLIO DETAILS
+        </small>
+    </h3>
+{% endblock %}
+
+{% block content %}
+
+
+            <h1>DETAIL</h1>
+
+            <table class="tg">
+            <thead>
+              <tr>
+                <th class="tg-0pky">Ativo</th>
+                <th class="tg-0lax">Qtd.</th>
+                <th class="tg-0pky">Preco Medio</th>
+                <th class="tg-0pky">Preco Atual</th>
+                <th class="tg-0lax">Total Atual</th>
+                <th class="tg-0lax">Percentual Carteira (%)</th>
+                <th class="tg-0lax">Resultado (R$)</th>
+                <th class="tg-0lax">Resultado (%)</th>
+                <th class="tg-0lax">Resultado com posicao zerada %</th>
+                <th class="tg-0lax">Variacao Dia (%)%</th>
+                <th class="tg-0lax">Total Dividendo</th>
+                <th class="tg-0lax">Resultado com Dividendo (%)</th>
+                <th class="tg-0lax">Resultado com Dividendo (R$)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if asset_list %}
+              {% for asset in asset_list %}
+              <tr>
+                <td class="tg-0lax">{{asset.asset.ticker}}</td>
+                <td class="tg-0lax">{{asset.quantity}}</td>
+                <td class="tg-0lax">{{asset.avg_price}}</td>
+                <td class="tg-0lax">{{asset.current_price}}</td>
+                <td class="tg-0lax">{{asset.total}}</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>
+              </tr>
+              {% endfor %}
+              {% endif %}
+            </tbody>
+            </table>
+
+
+{% endblock %}
