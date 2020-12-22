@@ -1,1 +1,1 @@
-web: gunicorn finance.wsgi --log-file -
+web: gunicorn --chdir finance finance.wsgi:application
