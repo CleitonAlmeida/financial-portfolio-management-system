@@ -71,6 +71,8 @@ TEMPLATES = [
     },
 ]
 
+STATIC_URL = '/static/'
+
 WSGI_APPLICATION = 'finance.wsgi.application'
 
 
