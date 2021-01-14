@@ -49,6 +49,7 @@ PyHamcrest = "==2.0.2"
 pyOpenSSL = "==20.0.0"
 service_identity = "==18.1.0"
 gunicorn = "*"
+whitenoise = "*"
 
 [dev-packages]
 
