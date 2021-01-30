@@ -1,3 +1,5 @@
-finance-system/
+finance/media/*
+finance/staticfiles/*
+finance/celerybeat-schedule
 *.pyc
 *.env
