@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">Home</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='portfolio' %}">Portfolio</a>
+&rsaquo; <a href="{% url 'admin:portfolio_asset_changelist' %}">Asset</a>
+&rsaquo; <a href="#">Upload</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% block object-tools %}
+  {% if change %}{% if not is_popup %}
+    <ul class="object-tools">
+      {% block object-tools-items %}
+        {% change_form_object_tools %}
+      {% endblock %}
+    </ul>
+  {% endif %}{% endif %}
+  {% endblock %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Upload</button>
+  </form>
+
+  {% if uploaded_file_url %}
+    <p>File uploaded at: <a href="{{ uploaded_file_url }}">{{ uploaded_file_url }}</a></p>
+  {% endif %}
+
+</div>
+{% endblock %}

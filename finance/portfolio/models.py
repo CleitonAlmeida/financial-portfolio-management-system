@@ -17,6 +17,12 @@ type_transactions = [
     JCP,
 ]
 
+currency_choices = [
+    ('R$', 'Reais'),
+    ('$', 'Dolar'),
+    ('€', 'Euro'),
+]
+
 class Portfolio(models.Model):
 
     def __str__(self):
@@ -44,14 +50,23 @@ class AssetType(models.Model):
 
 class Asset(models.Model):
     def __str__(self):
-        return "%s %s" % (self.type_investment.name, self.name)
+        return "%s - %s" % (self.ticker, self.name)
 
     type_investment = models.ForeignKey(AssetType, on_delete=models.CASCADE)
-    name = models.CharField(max_length=60, unique=True)
+    name = models.CharField(max_length=60)
     ticker = models.CharField(max_length=7, unique=True)
+    currency = models.CharField(
+        max_length=5,
+        choices = currency_choices,
+        default = currency_choices[0][0])
+    current_price = models.DecimalField(max_digits=12, decimal_places=5)
     desc_1 = models.CharField(max_length=20, blank=True, null=True)
     desc_2 = models.CharField(max_length=50, blank=True, null=True)
     desc_3 = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True,
+        editable=False)
+    last_update = models.DateTimeField(auto_now=True, auto_now_add=False,
+        editable=False)
 
 
     """
@@ -78,11 +93,6 @@ class Asset(models.Model):
 
 class Transaction(models.Model):
 
-    currency_choices = [
-        ('R$', 'Reais'),
-        ('$', 'Dolar'),
-        ('€', 'Euro'),
-    ]
     stockbroker_choices = [
         ('CL', 'Clear'),
         ('XP', 'XP Investimentos'),
@@ -120,23 +130,52 @@ class Transaction(models.Model):
         choices = stockbroker_choices,
         blank=True,
         null=True)
+    consolidated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True,
         editable=False)
     last_update = models.DateTimeField(auto_now=True, auto_now_add=False,
         editable=False)
 
 class PortfolioConsolidated(models.Model):
-    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE,
-        null=True)
-    asset = models.ForeignKey(Asset, on_delete=models.PROTECT, null=False)
-    quantity = models.DecimalField(max_digits=12, decimal_places=5)
-    avg_price = models.DecimalField(max_digits=12, decimal_places=2)
-    current_price = models.DecimalField(max_digits=12, decimal_places=2)
-    total = models.DecimalField(max_digits=12, decimal_places=2)
-    result_currency = models.DecimalField(max_digits=12, decimal_places=2)
-    result_percentage = models.DecimalField(max_digits=12, decimal_places=2)
-    total_dividend =  models.DecimalField(max_digits=12, decimal_places=2)
+    # *_nczp => No Consider Zeroed Positions
+    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
+    currency = models.CharField(
+        max_length=5,
+        choices = currency_choices,
+        default = currency_choices[0][0])
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_cost_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_dividend =  models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_dividend_nczp =  models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_other_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_other_cost_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True,
+        editable=False)
+    last_update = models.DateTimeField(auto_now=True, auto_now_add=False,
+        editable=False)
+
+class PortfolioAssetConsolidated(models.Model):
+    # *_nczp => No Consider Zeroed Positions
+    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
+    asset = models.ForeignKey(Asset, on_delete=models.PROTECT)
+    currency = models.CharField(
+        max_length=5,
+        choices = currency_choices,
+        default = currency_choices[0][0])
+    quantity = models.DecimalField(max_digits=12, decimal_places=5, default=Decimal(0))
+    avg_p_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    avg_p_price_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    avg_s_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    avg_s_price_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_cost_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_dividend =  models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_dividend_nczp =  models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_other_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    total_other_cost_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True,
+        editable=False)
+    last_update = models.DateTimeField(auto_now=True, auto_now_add=False,
         editable=False)
 
 

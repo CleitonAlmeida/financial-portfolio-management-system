@@ -50,6 +50,10 @@ pyOpenSSL = "==20.0.0"
 service_identity = "==18.1.0"
 gunicorn = "*"
 whitenoise = "*"
+celery = "*"
+boto3 = "*"
+kombu = "*"
+pycurl = "*"
 
 [dev-packages]
 

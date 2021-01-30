@@ -1,9 +1,21 @@
 {% extends "admin/base.html" %}
 
+{% load static humanize %}
+{% load portfolio_tags %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">Home</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='portfolio' %}">Portfolio</a>
+&rsaquo; <a href="{% url 'admin:portfolio_portfolio_changelist' %}">Portfolios</a>
+&rsaquo; <a href="#">Detail</a>
+</div>
+{% endblock %}
+
 {% block content_title %}
     <h3>
         <small>
-            PORTFOLIO DETAILS
+            PORTFOLIO
         </small>
     </h3>
 {% endblock %}
@@ -20,34 +32,34 @@
                 <th class="tg-0lax">Qtd.</th>
                 <th class="tg-0pky">Preco Medio</th>
                 <th class="tg-0pky">Preco Atual</th>
+                <!--<th class="tg-0pky"></th>-->
                 <th class="tg-0lax">Total Atual</th>
-                <th class="tg-0lax">Percentual Carteira (%)</th>
-                <th class="tg-0lax">Resultado (R$)</th>
-                <th class="tg-0lax">Resultado (%)</th>
+                <th class="tg-0lax">% Carteira</th>
+                <th class="tg-0lax">Resultado</th>
                 <th class="tg-0lax">Resultado com posicao zerada %</th>
                 <th class="tg-0lax">Variacao Dia (%)%</th>
                 <th class="tg-0lax">Total Dividendo</th>
-                <th class="tg-0lax">Resultado com Dividendo (%)</th>
-                <th class="tg-0lax">Resultado com Dividendo (R$)</th>
+                <!--<th class="tg-0lax">Resultado com Dividendo (%)</th>
+                <th class="tg-0lax">Resultado com Dividendo (R$)</th>-->
               </tr>
             </thead>
             <tbody>
               {% if asset_list %}
-              {% for asset in asset_list %}
+              {% for al in asset_list %}
               <tr>
-                <td class="tg-0lax">{{asset.asset.ticker}}</td>
-                <td class="tg-0lax">{{asset.quantity}}</td>
-                <td class="tg-0lax">{{asset.avg_price}}</td>
-                <td class="tg-0lax">{{asset.current_price}}</td>
-                <td class="tg-0lax">{{asset.total}}</td>
+                <td class="tg-0lax">{{al.asset.ticker}}</td>
+                <td class="tg-0lax">{{al.quantity|floatformat:2}}</td>
+                <td class="tg-0lax">{{al.currency}} {{al.avg_p_price_nczp|floatformat:2}}</td>
+                <td class="tg-0lax">{{al.currency}} {{ results|get_dict_value:al.asset.ticker|get_dict_value:'current_price'|floatformat:2 }}</td>
+                <!--<td class="tg-0lax">({{ results|get_dict_value:al.asset.ticker|get_dict_value:'last_update'|timesince }} ago)</td>-->
+                <td class="tg-0lax">{{al.currency}} {% if al.quantity %} {{ results|get_dict_value:al.asset.ticker|get_dict_value:'total_current'|floatformat:2 }} {% else %} 0 {% endif %}</td>
+                <td class="tg-0lax">{% if al.quantity %} {{ results|get_dict_value:al.asset.ticker|get_dict_value:'portfolio_percentage'|floatformat:2 }} {% else %} 0 {% endif %} %</td>
+                <td class="tg-0lax">{{al.currency}} {{ results|get_dict_value:al.asset.ticker|get_dict_value:'result_currency_nczp'|floatformat:2 }}  ( {{ results|get_dict_value:al.asset.ticker|get_dict_value:'result_percentage_nczp'|floatformat:2 }}% )</td>
+                <td class="tg-0lax">{{al.currency}} {{ results|get_dict_value:al.asset.ticker|get_dict_value:'result_currency'|floatformat:2 }}  ( {{ results|get_dict_value:al.asset.ticker|get_dict_value:'result_percentage'|floatformat:2 }}% )</td>
                 <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
-                <td class="tg-0lax">0</td>
+                <td class="tg-0lax">{{al.currency}} {{al.total_dividend_nczp|floatformat:2}}</td>
+                <!--<td class="tg-0lax">0</td>
+                <td class="tg-0lax">0</td>-->
               </tr>
               {% endfor %}
               {% endif %}

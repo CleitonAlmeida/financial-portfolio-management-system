@@ -2,16 +2,18 @@ from django.contrib import admin
 
 # Register your models here.
 from .models import Portfolio, Asset, AssetType, StockTransaction, FiiTransaction
-from django.forms import ModelChoiceField, CharField, ModelForm, BaseModelForm, TextInput, Textarea
+from django.forms import ModelChoiceField, CharField, ModelForm, BaseModelForm, TextInput, Textarea, HiddenInput
 from django.db.models import Sum, F
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
 from django.contrib.admin import AdminSite
 from portfolio.selectors import (
     get_portfolios,
     get_fii_transactions_user,
-    get_stock_transactions_user
+    get_stock_transactions_user,
+    get_fiis,
+    get_stocks
 )
 from portfolio.services import (
     get_total_cost_portfolio,
@@ -39,20 +41,55 @@ class PortfolioAdmin(admin.ModelAdmin):
 
     def show_view_link(obj):
         return format_html("<a href='{0}'>Visualizar</a>", reverse('view_portfolio', args=[obj.pk]))
-    show_view_link.short_description = 'Visualizar'
+    show_view_link.short_description = ''
+
+    def show_consolidate_link(obj):
+        return format_html("<a href='{0}'>Re-Consolidar</a>", reverse('reconsolidate_portfolio', args=[obj.pk]))
+    show_consolidate_link.short_description = ''
 
     list_display = ('name',
         'desc_1',
         get_total,
         'created_at',
+        show_consolidate_link,
         show_view_link)
     exclude = ['owner','consolidated',]
     readonly_fields = [
         'owner',
     ]
 
+class AssetAdmin(admin.ModelAdmin):
+
+    change_list_template = 'admin/change_list_with_upload.html'
+    search_fields = ('ticker',)
+    exclude = ['current_price',]
+    list_filter = ['type_investment']
+
+    def get_current_price(obj):
+        return "%s %2.2f" % (obj.currency, obj.current_price)
+    get_current_price.short_description = 'Current Price'
+
+    list_display = ('name','ticker',get_current_price)
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['upload_file_url'] = reverse('asset_upload_file')
+        return super(AssetAdmin, self).changelist_view(request, extra_context=extra_context)
+
+    def get_search_results(self, request, queryset, search_term):
+        if reverse('admin:portfolio_fiitransaction_add') in str(request.META.get('HTTP_REFERER')):
+            queryset = get_fiis()
+        elif reverse('admin:portfolio_stocktransaction_add') in str(request.META.get('HTTP_REFERER')):
+            queryset = get_stocks()
+        else:
+            queryset = queryset
+        queryset, use_distinct = super(AssetAdmin, self).get_search_results(request, queryset, search_term)
+
+        return queryset, use_distinct
+
 class TransactionForm(ModelForm):
-    asset = CharField(validators=[])
+    #asset = CharField(validators=[])
+    #type_investment = CharField(widget=HiddenInput)
 
     class Meta:
         model = Transaction
@@ -70,21 +107,28 @@ class TransactionForm(ModelForm):
             'desc_1',
             'desc_2'
         )
-        #hidden = ['type_investment']
 
-    def clean_asset(self):
+    """def clean_asset(self):
         asset = self.cleaned_data.get('asset')
         type_investment = self.cleaned_data.get('type_investment')
-        asset = get_or_create_asset(ticker=asset, type_investment=type_investment)
+        asset = get_or_create_asset(ticker=asset)
         return asset
 
     def get_initial_for_field(self, field, field_name):
         if field_name == 'asset':
             if hasattr(self.instance, 'asset') and isinstance(self.instance.asset, Asset):
                 return self.instance.asset.ticker
-        return super().get_initial_for_field(field, field_name)
+        return super().get_initial_for_field(field, field_name)"""
 
 class TransactionAdmin(admin.ModelAdmin):
+
+    change_list_template = 'admin/change_list_with_upload.html'
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['upload_file_url'] = reverse('transactions_upload_file')
+        return super(TransactionAdmin, self).changelist_view(request,
+            extra_context=extra_context)
 
     # To return only portfolio's current user on portfolio field at forms
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -92,6 +136,10 @@ class TransactionAdmin(admin.ModelAdmin):
             kwargs['queryset'] = get_portfolios(fetched_by=request.user)
         return super(TransactionAdmin, self).formfield_for_foreignkey(
             db_field, request, **kwargs)
+
+    def get_asset(obj):
+        return obj.asset.ticker
+    get_asset.short_description = 'Asset'
 
     def get_unit_cost(obj):
         return "%s %2.2f" % (obj.currency, obj.unit_cost)
@@ -109,8 +157,9 @@ class TransactionAdmin(admin.ModelAdmin):
         return obj.transaction_date.strftime("%d/%b/%Y")
     get_transaction_date.short_description = 'Date'
 
-    list_display = ('portfolio',
-        'asset',
+    autocomplete_fields = ['asset']
+    list_display = ('type_transaction',
+        get_asset,
         'desc_1',
         get_transaction_date,
         get_unit_cost,
@@ -118,12 +167,13 @@ class TransactionAdmin(admin.ModelAdmin):
         get_total,
         )
     search_fields = (
-        'asset',
+        'asset__name',
+        'asset__ticker',
         'transaction_date',
         'stockbroker',
         'desc_1',
         'desc_2')
-    list_filter = ['stockbroker']
+    list_filter = ['stockbroker', 'type_transaction']
 
 
 class StockTransactionAdmin(TransactionAdmin):
@@ -136,7 +186,8 @@ class StockTransactionAdmin(TransactionAdmin):
         obj.owner = request.user
         if change:
             return super().save_model(request, obj, form, change)
-        form.cleaned_data.pop('type_investment')
+        if 'type_investment' in form.cleaned_data:
+            form.cleaned_data.pop('type_investment')
         create_stock_transaction(user=request.user,**form.cleaned_data)
 
 class FiiTransactionAdmin(TransactionAdmin):
@@ -154,7 +205,7 @@ class FiiTransactionAdmin(TransactionAdmin):
         create_fii_transaction(user=request.user,**form.cleaned_data)
 
 admin.site.register(AssetType)
-admin.site.register(Asset)
+admin.site.register(Asset, AssetAdmin)
 admin.site.register(Portfolio, PortfolioAdmin)
 admin.site.register(StockTransaction, StockTransactionAdmin)
 admin.site.register(FiiTransaction, FiiTransactionAdmin)

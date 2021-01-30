@@ -35,12 +35,13 @@ ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', 'obscure-chamber-77579.her
 
 INSTALLED_APPS = [
     'portfolio.apps.PortfolioConfig',
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.admin',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
@@ -133,3 +134,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
