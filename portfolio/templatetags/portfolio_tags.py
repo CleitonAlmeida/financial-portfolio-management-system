@@ -3,7 +3,6 @@ register = template.Library()
 
 @register.filter
 def get_dict_value(dictionary, key):
-    print('%s %s', dictionary, key)
     return dictionary.get(key, '')
 
 @register.filter

@@ -99,6 +99,17 @@ def create_portfolio(
 
     return portfolio
 
+def task_refresh_price(
+    *,
+    ticker: str
+):
+    from portfolio.tasks import refresh_current_price as refresh
+    refresh.delay(ticker)
+
+def task_refresh_all_prices():
+    from portfolio.tasks import refresh_assets_prices
+    refresh_assets_prices.delay()
+
 def get_or_create_asset_type(
     *,
     name: str
@@ -116,6 +127,7 @@ def get_or_create_asset(
     ticker: str,
     type_investment: Optional[AssetType] = None,
     name: str = None,
+    currency: Optional[CurrencyChoices]=CurrencyChoice.Reais.value,
     desc_1: str = None,
     desc_2: str = None,
     desc_3: str = None,
@@ -137,12 +149,15 @@ def get_or_create_asset(
             ticker=ticker,
             type_investment=type_investment,
             name=name,
+            currency = currency,
             current_price=Decimal(0),
             desc_1=desc_1,
             desc_2=desc_2,
             desc_3=desc_3,
         )
+        task_refresh_price(ticker=ticker)
     return asset
+
 
 def refresh_current_price(
     *,
@@ -200,6 +215,7 @@ def create_transaction(
     )
     portfolio.consolidated = False
     portfolio.save()
+    task_refresh_price(ticker=asset.ticker)
     return transaction
 
 def create_fii_transaction(
@@ -473,6 +489,7 @@ def reconsolidate_portfolio(
     Transaction.objects.filter(
             portfolio__pk=portfolio.pk
         ).update(consolidated = False)
+    task_refresh_all_prices()
     return True
 
 @transaction.atomic
@@ -486,7 +503,6 @@ def consolidate_portfolio(
         permission='add_portfolioassetconsolidated',
         object=portfolio)
 
-    print('portfolio.consolidated %s', portfolio.consolidated)
     if portfolio.consolidated:
         return True
 

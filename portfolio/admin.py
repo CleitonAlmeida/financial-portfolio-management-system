@@ -87,6 +87,12 @@ class AssetAdmin(admin.ModelAdmin):
 
         return queryset, use_distinct
 
+    def save_model(self, request, obj, form, change):
+        obj.owner = request.user
+        if change:
+            return super().save_model(request, obj, form, change)
+        get_or_create_asset(**form.cleaned_data)
+
 class TransactionForm(ModelForm):
     #asset = CharField(validators=[])
     #type_investment = CharField(widget=HiddenInput)
