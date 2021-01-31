@@ -45,9 +45,13 @@ app.conf.update(CELERY_CONFIG)
 app.autodiscover_tasks(lambda: [n.name for n in apps.get_app_configs()])
 
 app.conf.beat_schedule = {
-    'add-every-60-seconds': {
+    'add-every-15-minutes': {
         'task': 'portfolio.tasks.refresh_assets_prices',
-        'schedule': 60.0,
+        #'schedule': 300.0,
+        'schedule': crontab(
+            minute='*/15',
+            hour='8-18',
+            day_of_week='mon,tue,wed,thu,fri'),
         'args': None
     },
 }
