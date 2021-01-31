@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.core import exceptions
 from django.utils import timezone
 from django.db import transaction
+from decouple import config
 from django.db.models import (
     Sum,
     F,
@@ -611,8 +612,8 @@ def get_ticker_info(
     ticker: str
 ) -> dict:
     symbol = None
-    url = 'https://query2.finance.yahoo.com/v1/finance/search?q={0}'.format(ticker)
-    response = requests.get(url)
+    url = config('SERVICE_ASSET_INFO')+ticker
+    response = requests.get(url, timeout=(5, 14))
     if response.status_code == 200:
         try:
             j = json.loads(response.text)
@@ -644,10 +645,12 @@ def get_current_price(
     price = 0
     symbol = symbol.get('symbol')
 
-    print('start %s',ticker)
-    url = 'https://query1.finance.yahoo.com/v8/finance/chart/{0}'.format(symbol)
-    response = requests.get(url)
-    print('response %s',response)
+    url = config('SERVICE_PRICES_URL')+str(symbol)
+    try:
+        response = requests.get(url, timeout=(5, 14))
+    except requests.exceptions.ConnectionError:
+        return 0
+    print('response %s %s', ticker, response)
     if response.status_code == 200:
         try:
             j = json.loads(response.text)
@@ -663,7 +666,6 @@ def get_current_price(
             raise exceptions.ObjectDoesNotExist
     else:
         raise exceptions.ObjectDoesNotExist
-    print('%s %s', ticker, Decimal(price))
     return Decimal(price)
 
 def validate_currency(

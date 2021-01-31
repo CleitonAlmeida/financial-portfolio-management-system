@@ -1,1 +1,2 @@
-web: gunicorn --chdir finance finance.wsgi:application --log-file -
+web: gunicorn finance.wsgi:application --log-file -
+worker: celery --app=finance worker -B

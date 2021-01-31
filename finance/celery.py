@@ -1,12 +1,12 @@
-import os
-
+import os, sys, django
 from celery import Celery
 from celery.schedules import crontab
 from decouple import config
+from django.apps import apps
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "finance.settings")
 
-app = Celery("portfolio")
+app = Celery("finance")
 
 CELERY_CONFIG = {
     "task_serializer": "json",
@@ -40,12 +40,14 @@ CELERY_CONFIG.update(
 
 
 app.conf.update(CELERY_CONFIG)
-app.autodiscover_tasks(packages={"portfolio.tasks"})
+
+#app.autodiscover_tasks(packages={"portfolio.tasks"})
+app.autodiscover_tasks(lambda: [n.name for n in apps.get_app_configs()])
 
 app.conf.beat_schedule = {
     'add-every-60-seconds': {
         'task': 'portfolio.tasks.refresh_assets_prices',
-        'schedule': 300.0,
+        'schedule': 60.0,
         'args': None
     },
 }

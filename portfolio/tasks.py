@@ -1,3 +1,4 @@
+from django.core import exceptions
 from finance.celery import app
 from portfolio.services import (
     refresh_current_price as refresh_price
@@ -21,4 +22,7 @@ def refresh_assets_prices():
     for t in get_assets_types():
         assets = get_active_assets(type_investment=t)
         for asset in assets:
-            refresh_price(ticker=asset.ticker)
+            try:
+                refresh_price(ticker=asset.ticker)
+            except exceptions.ObjectDoesNotExist:
+                print('Falhou')
