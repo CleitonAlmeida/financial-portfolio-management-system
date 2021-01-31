@@ -630,6 +630,7 @@ def get_ticker_info(
 ) -> dict:
     symbol = None
     url = config('SERVICE_ASSET_INFO')+ticker
+    print('URL %s', url)
     response = requests.get(url, timeout=(5, 14))
     if response.status_code == 200:
         try:
@@ -663,6 +664,7 @@ def get_current_price(
     symbol = symbol.get('symbol')
 
     url = config('SERVICE_PRICES_URL')+str(symbol)
+    print('URL %s', url)
     try:
         response = requests.get(url, timeout=(5, 14))
     except requests.exceptions.ConnectionError:
