@@ -137,6 +137,7 @@ def get_or_create_asset(
             ticker=ticker,
             type_investment=type_investment,
             name=name,
+            current_price=Decimal(0),
             desc_1=desc_1,
             desc_2=desc_2,
             desc_3=desc_3,
