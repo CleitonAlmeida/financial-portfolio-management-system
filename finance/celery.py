@@ -19,7 +19,7 @@ CELERY_CONFIG = {
 }
 
 
-CELERY_CONFIG.update(
+"""CELERY_CONFIG.update(
     **{
         "broker_url": config("CELERY_BROKER_URL"),
         "broker_transport": "sqs",
@@ -35,6 +35,13 @@ CELERY_CONFIG.update(
                   }
               }
         },
+    }
+)"""
+
+CELERY_CONFIG.update(
+    **{
+        "broker_url": config("CELERY_BROKER_URL"),
+        "result_backend": config("CELERY_RESULT_BACKEND_URL"),
     }
 )
 

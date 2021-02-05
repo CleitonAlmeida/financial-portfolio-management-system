@@ -54,6 +54,7 @@ celery = "*"
 boto3 = "*"
 kombu = "*"
 pycurl = "*"
+redis = "*"
 
 [dev-packages]
 

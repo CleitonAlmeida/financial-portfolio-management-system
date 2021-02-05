@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  db:
+    image: postgres
+    ports:
+        - "${DATABASES_DEFAULT_PORT}:${DATABASES_DEFAULT_PORT}"
+    environment:
+      - POSTGRES_DB=${DATABASES_DEFAULT_NAME}
+      - POSTGRES_USER=${DATABASES_DEFAULT_USER}
+      - POSTGRES_PASSWORD=${DATABASES_DEFAULT_PASSWORD}
+  redis:
+    image: redis:latest
+    hostname: redis
+  rabbit:
+    hostname: rabbit
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=mypass
+  web:
+    build: .
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py createsu && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/code
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+      - rabbit
+  worker:
+    build: .
+    command: celery --app=finance worker -B
+    depends_on:
+      - db
+      - redis
+      - rabbit
+      - web
