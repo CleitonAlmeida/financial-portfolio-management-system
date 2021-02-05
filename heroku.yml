@@ -11,4 +11,4 @@ build:
     web: Dockerfile
     worker: Dockerfile
 run:
-  web: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py createsu && gunicorn finance.wsgi:application -b 0.0.0.0:8000 --log-file -"
+  web: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py createsu && gunicorn finance.wsgi:application --log-file -"
