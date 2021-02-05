@@ -1,0 +1,14 @@
+setup:
+  addons:
+    - plan: heroku-postgresql
+      as: db
+    - plan: heroku-redis
+      as: redis
+    - plan: cloudamqp
+      as: rabbit
+build:
+  docker:
+    web: Dockerfile
+    worker: Dockerfile
+run:
+  web: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py createsu && gunicorn finance.wsgi:application -b 0.0.0.0:8000 --log-file -"
