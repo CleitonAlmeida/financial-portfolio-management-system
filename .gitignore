@@ -1,5 +1,5 @@
-finance/media/*
-finance/staticfiles/*
-finance/celerybeat-schedule
+media/*
+staticfiles/*
+celerybeat-schedule
 *.pyc
 *.env
