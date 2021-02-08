@@ -1,0 +1,6 @@
+{
+  "name": "Financial Portfolio Management System",
+  "description": "Investment portfolio management system",
+  "repository": "https://github.com/CleitonAlmeida/financial-portfolio-management-system",
+  "keywords": ["stocks", "b3", "REITs", "python3", "django", "celery"]
+}
