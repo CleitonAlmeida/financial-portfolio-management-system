@@ -1,24 +1,64 @@
 from django.test import TestCase
 from portfolio.services import (
     create_portfolio,
-    get_or_create_asset,
+    create_asset,
     get_or_create_asset_type,
     create_transaction,
     get_qty_asset,
-    get_total_value_asset,
     get_operation_cost_asset,
     get_avg_price_asset,
     get_avg_purchase_price,
     get_avg_sale_price,
     get_total_cost_portfolio,
-    get_percentage_portfolio
+    #get_percentage_portfolio
 )
-from portfolio.models import Transaction
-from django.contrib.auth.models import User
+from portfolio.tests.utils import TestUtils
 from django.utils import timezone
 from decimal import Decimal
 
-class ServicesTestCase(TestCase):
+
+
+class AssetServicesTestCase(TestCase):
+
+    def setUp(self):
+        self.util = TestUtils()
+
+    def test_get_or_create_asset_min(self):
+        data = {
+            'ticker': 'ITSA4',
+            'type_investment': self.util.get_standard_asset_type('STOCK')
+        }
+        asset = create_asset(**data)
+        self.assertEqual('ITSA4', asset.ticker)
+        self.assertEqual('R$', asset.currency)
+        self.assertEqual('STOCK', asset.type_investment.name)
+        self.assertEqual('ITAUSA PN N1', asset.desc_1)
+        self.assertEqual('ITSA4.SA', asset.desc_2)
+
+        data = {
+            'ticker': asset.ticker
+        }
+
+    def test_get_or_create_asset(self):
+        data = {
+            'ticker': 'ITUB4',
+            'name': 'Grande Itau',
+            'type_investment': self.util.get_standard_asset_type('STOCK'),
+            'desc_1': 'desc1',
+            'desc_2': 'desc2',
+            'desc_3': 'desc3',
+            'currency': 'R$',
+        }
+        asset = create_asset(**data)
+        self.assertEqual('ITUB4', asset.ticker)
+        self.assertEqual('Grande Itau', asset.name)
+        self.assertEqual('R$', asset.currency)
+        self.assertEqual('STOCK', asset.type_investment.name)
+        self.assertEqual('desc1', asset.desc_1)
+        self.assertEqual('desc2', asset.desc_2)
+        self.assertEqual('desc3', asset.desc_3)
+
+"""class ServicesTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(
             username='cleitonalmeida',
@@ -125,4 +165,4 @@ class ServicesTestCase(TestCase):
         percent_portfolio = get_percentage_portfolio(
             portfolio=portfolio,
             asset=asset)
-        self.assertEqual(float(percent_portfolio),100)
+        self.assertEqual(float(percent_portfolio),100)"""

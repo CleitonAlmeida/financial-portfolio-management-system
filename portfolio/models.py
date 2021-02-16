@@ -59,7 +59,9 @@ class Asset(models.Model):
         max_length=5,
         choices = currency_choices,
         default = currency_choices[0][0])
-    current_price = models.DecimalField(max_digits=12, decimal_places=5)
+    current_price = models.DecimalField(max_digits=12,
+        decimal_places=5,
+        default=Decimal(0))
     desc_1 = models.CharField(max_length=20, blank=True, null=True)
     desc_2 = models.CharField(max_length=50, blank=True, null=True)
     desc_3 = models.CharField(max_length=100, blank=True, null=True)

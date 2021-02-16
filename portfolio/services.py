@@ -122,8 +122,9 @@ def get_or_create_asset_type(
         )
     return asset_type
 
-def get_or_create_asset(
+def create_asset(
     *,
+    id: Optional[int] = 0,
     ticker: str,
     type_investment: Optional[AssetType] = None,
     name: str = None,
@@ -136,26 +137,28 @@ def get_or_create_asset(
     if type_investment is not None and type(type_investment) == str:
         type_investment = get_or_create_asset_type(name=type_investment)
         filter['type_investment'] = type_investment
+    if id:
+        filter['pk'] = id
+
+    data = {}
+    asset_info = get_ticker_info(ticker=ticker)
+
+    data['ticker'] = ticker
+    data['type_investment'] = type_investment
+    data['name'] = name or asset_info.get('longname')
+    data['currency'] = currency
+    data['current_price'] = Decimal(0)
+    data['desc_1'] = desc_1 or asset_info.get('shortname')
+    data['desc_2'] = desc_2 or asset_info.get('symbol')
+    data['desc_3'] = desc_3
+
     try:
         asset = Asset.objects.get(**filter)
+        Asset.objects.filter(**filter).update(**data)
+        asset.refresh_from_db()
     except exceptions.ObjectDoesNotExist:
-        if name is None:
-            asset_info = get_ticker_info(ticker=ticker)
-            if type(asset_info) == dict and len(asset_info) > 0:
-                name = asset_info.get('longname')
-                desc_1 = asset_info.get('shortname')
-                desc_2 = asset_info.get('symbol')
-        asset = Asset.objects.create(
-            ticker=ticker,
-            type_investment=type_investment,
-            name=name,
-            currency = currency,
-            current_price=Decimal(0),
-            desc_1=desc_1,
-            desc_2=desc_2,
-            desc_3=desc_3,
-        )
-        task_refresh_price(ticker=ticker)
+        asset = Asset.objects.create(**data)
+    task_refresh_price(ticker=ticker)
     return asset
 
 
@@ -198,7 +201,7 @@ def create_transaction(
         type_investment = None
 
     if isinstance(asset, str):
-        asset = get_or_create_asset(**params)
+        asset = get_assets(filters=params)[0]
     transaction = Transaction.objects.create(
         portfolio=portfolio,
         type_transaction=type_transaction,
