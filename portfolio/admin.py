@@ -66,7 +66,10 @@ class AssetAdmin(admin.ModelAdmin):
     list_filter = ['type_investment']
 
     def get_current_price(obj):
-        return "%s %2.2f" % (obj.currency, obj.current_price)
+        if obj.current_price > 0:
+            return "%s %2.2f" % (obj.currency, obj.current_price)
+        else:
+            return format_html("<a href='.'>Atualizar</a>")
     get_current_price.short_description = 'Current Price'
 
     list_display = ('ticker','name',get_current_price, 'last_update')
