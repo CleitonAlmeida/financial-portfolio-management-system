@@ -20,7 +20,7 @@ from portfolio.services import (
     create_portfolio,
     create_fii_transaction,
     create_stock_transaction,
-    get_or_create_asset
+    create_asset
 )
 from portfolio.models import Transaction
 
@@ -69,7 +69,7 @@ class AssetAdmin(admin.ModelAdmin):
         return "%s %2.2f" % (obj.currency, obj.current_price)
     get_current_price.short_description = 'Current Price'
 
-    list_display = ('name','ticker',get_current_price)
+    list_display = ('ticker','name',get_current_price, 'last_update')
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -90,8 +90,9 @@ class AssetAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
         if change:
-            return super().save_model(request, obj, form, change)
-        get_or_create_asset(**form.cleaned_data)
+            create_asset(id=obj.pk, **form.cleaned_data)
+        else:
+            create_asset(**form.cleaned_data)
 
 class TransactionForm(ModelForm):
     #asset = CharField(validators=[])
@@ -117,7 +118,7 @@ class TransactionForm(ModelForm):
     """def clean_asset(self):
         asset = self.cleaned_data.get('asset')
         type_investment = self.cleaned_data.get('type_investment')
-        asset = get_or_create_asset(ticker=asset)
+        asset = create_asset(ticker=asset)
         return asset
 
     def get_initial_for_field(self, field, field_name):

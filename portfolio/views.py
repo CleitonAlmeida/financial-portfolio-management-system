@@ -6,7 +6,7 @@ from .models import Portfolio, PortfolioAssetConsolidated, Asset
 from portfolio.services import (
     consolidate_portfolio,
     reconsolidate_portfolio as reconsolidate,
-    get_or_create_asset,
+    create_asset,
     create_transaction,
     get_current_price,
     validate_currency,
@@ -53,7 +53,7 @@ def asset_upload_file(request):
             portfolio1 = csv.DictReader(paramFile, delimiter=";")
             list_of_dict = list(portfolio1)
             for row in list_of_dict:
-                get_or_create_asset(ticker=row['ticker'],
+                create_asset(ticker=row['ticker'],
                     name=row['name'],
                     type_investment=row['type_investment'],
                     desc_1=row['desc_1'],
@@ -100,7 +100,7 @@ def transactions_upload_file(request):
             #print(list_of_dict)
             with transaction.atomic():
                 for row in list_of_dict:
-                    asset = get_or_create_asset(ticker=row['ticker'])
+                    asset = get_assets(filters={'ticker': row['ticker']})[0]
                     if validate_currency(currency=row.get('currency', 'R$').lstrip()):
                         currency = row.get('currency', 'R$').lstrip()
                     else:
