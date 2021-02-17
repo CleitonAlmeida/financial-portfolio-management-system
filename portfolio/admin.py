@@ -16,7 +16,7 @@ from portfolio.selectors import (
     get_stocks
 )
 from portfolio.services import (
-    get_total_cost_portfolio,
+    get_total_value_portfolio,
     create_portfolio,
     create_fii_transaction,
     create_stock_transaction,
@@ -29,22 +29,28 @@ class PortfolioAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
         if change:
-            return super().save_model(request, obj, form, change)
-        create_portfolio(owner=request.user,**form.cleaned_data)
+            create_portfolio(id=obj.pk,
+                owner=request.user,
+                **form.cleaned_data)
+        else:
+            create_portfolio(owner=request.user,
+                **form.cleaned_data)
 
     def get_queryset(self, request):
         return get_portfolios(fetched_by=request.user)
 
     def get_total(obj):
-        return "%2.2f" % (get_total_cost_portfolio(portfolio=obj))
-    get_total.short_description = 'Total Cost'
+        return "%2.2f" % (get_total_value_portfolio(portfolio=obj))
+    get_total.short_description = 'Total Value'
 
     def show_view_link(obj):
-        return format_html("<a href='{0}'>Visualizar</a>", reverse('view_portfolio', args=[obj.pk]))
+        return format_html("<a href='{0}'>Visualizar</a>",
+            reverse('view_portfolio', args=[obj.pk]))
     show_view_link.short_description = ''
 
     def show_consolidate_link(obj):
-        return format_html("<a href='{0}'>Re-Consolidar</a>", reverse('reconsolidate_portfolio', args=[obj.pk]))
+        return format_html("<a href='{0}'>Re-Consolidar</a>",
+            reverse('reconsolidate_portfolio', args=[obj.pk]))
     show_consolidate_link.short_description = ''
 
     list_display = ('name',
@@ -77,7 +83,8 @@ class AssetAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         extra_context['upload_file_url'] = reverse('asset_upload_file')
-        return super(AssetAdmin, self).changelist_view(request, extra_context=extra_context)
+        return super(AssetAdmin, self).changelist_view(request,
+            extra_context=extra_context)
 
     def get_search_results(self, request, queryset, search_term):
         if reverse('admin:portfolio_fiitransaction_add') in str(request.META.get('HTTP_REFERER')):
@@ -86,7 +93,10 @@ class AssetAdmin(admin.ModelAdmin):
             queryset = get_stocks()
         else:
             queryset = queryset
-        queryset, use_distinct = super(AssetAdmin, self).get_search_results(request, queryset, search_term)
+        queryset, use_distinct = super(AssetAdmin, self).get_search_results(
+            request,
+            queryset,
+            search_term)
 
         return queryset, use_distinct
 

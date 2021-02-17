@@ -1,3 +1,6 @@
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import Permission
+from portfolio.models import Portfolio
 from django.test import TestCase
 from portfolio.services import (
     create_portfolio,
@@ -14,9 +17,62 @@ from portfolio.services import (
 )
 from portfolio.tests.utils import TestUtils
 from django.utils import timezone
+from django.core import serializers, exceptions
 from decimal import Decimal
 
 
+class PortfolioServicesTestCase(TestCase):
+
+    def setUp(self):
+        self.util = TestUtils()
+        self.user = self.util.get_standard_user()
+
+        #Add permission to manage portfolio
+        content_type = ContentType.objects.get_for_model(Portfolio)
+        permission = Permission.objects.get(
+            codename='add_portfolio',
+            content_type=content_type,
+        )
+        self.user.user_permissions.add(permission)
+        self.user.refresh_from_db()
+
+    def test_create_portfolio(self):
+        data = {
+            'owner': self.util.get_standard_user(),
+            'name': 'Portfolio Test'
+        }
+        portfolio = create_portfolio(**data)
+        self.assertEqual(portfolio.name, data['name'])
+
+    def test_update_portfolio(self):
+        portfolio = self.util.get_standard_portfolio(user=self.user)
+
+        data = portfolio.__dict__
+        for key in ['created_at', 'last_update', '_state', 'owner_id', 'consolidated']:
+            del data[key]
+        data['owner'] = self.user
+        data['name'] = 'New Name'
+        data['desc_1'] = 'New Desc'
+        portfolio = create_portfolio(**data)
+        self.assertEqual(portfolio.name, data['name'])
+        self.assertEqual(portfolio.desc_1, data['desc_1'])
+        self.assertEqual(portfolio.pk, data['id'])
+
+    def test_without_permission(self):
+        content_type = ContentType.objects.get_for_model(Portfolio)
+        permission = Permission.objects.get(
+            codename='add_portfolio',
+            content_type=content_type,
+        )
+        self.user.user_permissions.remove(permission)
+        self.user.refresh_from_db()
+
+        data = {
+            'owner': self.util.get_standard_user(),
+            'name': 'Portfolio Test'
+        }
+        with self.assertRaises(exceptions.PermissionDenied):
+            portfolio = create_portfolio(**data)
 
 class AssetServicesTestCase(TestCase):
 
@@ -34,10 +90,6 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual('STOCK', asset.type_investment.name)
         self.assertEqual('ITAUSA PN N1', asset.desc_1)
         self.assertEqual('ITSA4.SA', asset.desc_2)
-
-        data = {
-            'ticker': asset.ticker
-        }
 
     def test_get_or_create_asset(self):
         data = {
@@ -57,6 +109,53 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual('desc1', asset.desc_1)
         self.assertEqual('desc2', asset.desc_2)
         self.assertEqual('desc3', asset.desc_3)
+
+    def test_update_asset(self):
+        asset = self.util.get_standard_asset(
+            ticker='ITUB4',
+            type_investment='STOCK')
+
+        data = asset.__dict__
+        data['type_investment'] = self.util.get_standard_asset_type(name='STOCK')
+        for key in ['created_at', 'last_update', '_state', 'type_investment_id']:
+            del data[key]
+
+        data['type_investment'] = self.util.get_standard_asset_type(name='FII')
+        data['name'] = 'other name'
+        data['currency'] = '$'
+        data['current_price'] = Decimal('10.80')
+        data['desc_1'] = 'desc 1.1'
+        data['desc_2'] = 'desc 2.1'
+        data['desc_3'] = 'desc 3.1'
+        asset = create_asset(**data)
+
+        self.assertEqual(asset.id, data['id'])
+        self.assertEqual(asset.ticker, data['ticker'])
+        self.assertEqual(asset.type_investment.name,
+            data['type_investment'].name)
+        self.assertEqual(asset.currency, data['currency'])
+        self.assertEqual(asset.current_price, data['current_price'])
+        self.assertEqual(asset.desc_1, data['desc_1'])
+        self.assertEqual(asset.desc_2, data['desc_2'])
+        self.assertEqual(asset.desc_3, data['desc_3'])
+
+    """
+    Update an asset with a different ticker is consider a new asset
+    """
+    def test_update_asset_ticker(self):
+        asset = self.util.get_standard_asset(ticker='YYYY4', type_investment='STOCK')
+        old_pk = asset.pk
+        self.assertEqual('YYYY4', asset.ticker)
+
+        data = asset.__dict__
+        data['type_investment'] = self.util.get_standard_asset_type(name='STOCK')
+        for key in ['created_at', 'last_update', '_state', 'type_investment_id']:
+            del data[key]
+
+        data['ticker'] = 'XXXX4'
+        asset = create_asset(**data)
+        self.assertEqual('XXXX4', asset.ticker)
+        self.assertNotEqual(asset.pk, old_pk)
 
 """class ServicesTestCase(TestCase):
     def setUp(self):

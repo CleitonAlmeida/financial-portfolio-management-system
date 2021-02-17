@@ -86,17 +86,23 @@ def _test_permissions(
 
 def create_portfolio(
     *,
+    id: Optional[int] = 0,
     owner: User,
     name: str,
     desc_1: str = None,
 ) -> Portfolio:
     _test_permissions(user=owner,permission='add_portfolio')
-    portfolio = Portfolio.objects.create(
-        owner=owner,
-        name=name,
-        desc_1=desc_1,
-    )
+    data = {}
+    data['owner'] = owner
+    data['name'] = name
+    data['desc_1'] = desc_1
 
+    try:
+        portfolio = Portfolio.objects.get(pk=id)
+        Portfolio.objects.filter(pk=id).update(**data)
+        portfolio.refresh_from_db()
+    except exceptions.ObjectDoesNotExist:
+        portfolio = Portfolio.objects.create(**data)
     return portfolio
 
 def task_refresh_price(
@@ -129,6 +135,7 @@ def create_asset(
     type_investment: Optional[AssetType] = None,
     name: str = None,
     currency: Optional[CurrencyChoices]=CurrencyChoice.Reais.value,
+    current_price: Optional[Decimal] = 0.0,
     desc_1: str = None,
     desc_2: str = None,
     desc_3: str = None,
@@ -147,7 +154,7 @@ def create_asset(
     data['type_investment'] = type_investment
     data['name'] = name or asset_info.get('longname')
     data['currency'] = currency
-    data['current_price'] = Decimal(0)
+    data['current_price'] = current_price
     data['desc_1'] = desc_1 or asset_info.get('shortname')
     data['desc_2'] = desc_2 or asset_info.get('symbol')
     data['desc_3'] = desc_3
