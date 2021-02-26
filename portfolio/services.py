@@ -34,7 +34,8 @@ from typing import (
     Optional,
     Union,
     NewType,
-    Iterable
+    Iterable,
+    Literal
 )
 from decimal import Decimal
 import datetime
@@ -184,8 +185,9 @@ def refresh_current_price(
 
 def create_transaction(
     *,
+    id: Optional[int] = 0,
     portfolio: Portfolio,
-    type_transaction: Optional[TypeTransactions],
+    type_transaction: TypeTransactions,
     type_investment: Union[str,AssetType] = None,
     transaction_date: datetime = timezone.now(),
     asset: Union[str, Asset],
@@ -197,6 +199,7 @@ def create_transaction(
     desc_2:str = None,
     stockbroker: Optional[StockBrokerChoices] = StockBrokerChoice.Rico.value,
 ) -> Transaction:
+
     params = {'ticker': asset}
     if isinstance(type_investment, AssetType):
         type_investment = type_investment
@@ -209,20 +212,30 @@ def create_transaction(
 
     if isinstance(asset, str):
         asset = get_assets(filters=params)[0]
-    transaction = Transaction.objects.create(
-        portfolio=portfolio,
-        type_transaction=type_transaction,
-        transaction_date=transaction_date,
-        asset=asset,
-        type_investment=asset.type_investment,
-        quantity=quantity,
-        unit_cost=unit_cost,
-        currency=currency,
-        other_costs=other_costs,
-        desc_1=desc_1,
-        desc_2=desc_2,
-        stockbroker=stockbroker,
-    )
+
+    data = {}
+    data['portfolio'] = portfolio
+    data['type_transaction'] = type_transaction
+    data['transaction_date'] = transaction_date
+    data['asset'] = asset
+    data['type_investment'] = asset.type_investment
+    data['quantity'] = quantity
+    data['unit_cost'] = unit_cost
+    data['currency'] = currency
+    data['other_costs'] = other_costs
+    data['desc_1'] = desc_1
+    data['desc_2'] = desc_2
+    data['stockbroker'] = stockbroker
+    data['consolidated'] = False
+
+    try:
+        transaction = Transaction.objects.get(pk=id)
+        Transaction.objects.filter(pk=id).update(**data)
+        transaction.refresh_from_db()
+    except exceptions.ObjectDoesNotExist:
+        transaction = Transaction.objects.create(**data)
+    task_refresh_price(ticker=asset.ticker)
+
     portfolio.consolidated = False
     portfolio.save()
     task_refresh_price(ticker=asset.ticker)
@@ -231,20 +244,28 @@ def create_transaction(
 def create_fii_transaction(
     *,
     user: User,
+    id: Optional[int] = 0,
     portfolio: Portfolio,
-    type_transaction: Optional[TypeTransactions],
+    type_transaction: TypeTransactions,
     transaction_date: datetime = timezone.now(),
     asset: Union[str, Asset],
     quantity: Union[int,float,Decimal],
     unit_cost: Union[int,float,Decimal],
-    currency: Optional[CurrencyChoices]=CurrencyChoice.Reais.value,
+    currency: Union[CurrencyChoices]=CurrencyChoice.Reais.value,
     other_costs: Union[int,float,Decimal] = Decimal('0.0'),
     desc_1:str = None,
     desc_2:str = None,
     stockbroker: Optional[StockBrokerChoices] = StockBrokerChoice.Rico.value,
 ) -> Transaction:
     _test_permissions(user=user,permission='add_fiitransaction')
+    if isinstance(asset, str):
+        asset = get_assets(filters={'ticker': asset})[0]
+
+    if asset.type_investment.name != 'FII':
+        raise exceptions.ValidationError('Invalid Asset Type')
+
     return create_transaction(
+        id=id,
         portfolio=portfolio,
         type_transaction=type_transaction,
         type_investment='FII',
@@ -262,8 +283,9 @@ def create_fii_transaction(
 def create_stock_transaction(
     *,
     user: User,
+    id: Optional[int] = 0,
     portfolio: Portfolio,
-    type_transaction: Optional[TypeTransactions],
+    type_transaction: TypeTransactions,
     transaction_date: datetime = timezone.now(),
     asset: Union[str, Asset],
     quantity: Union[int,float,Decimal],
@@ -275,7 +297,15 @@ def create_stock_transaction(
     stockbroker: Optional[StockBrokerChoices] = StockBrokerChoice.Rico.value,
 ) -> Transaction:
     _test_permissions(user=user,permission='add_stocktransaction')
+
+    if isinstance(asset, str):
+        asset = get_assets(filters={'ticker': asset})[0]
+
+    if asset.type_investment.name != 'STOCK':
+        raise exceptions.ValidationError('Invalid Asset Type')
+
     return create_transaction(
+        id=id,
         portfolio=portfolio,
         type_transaction=type_transaction,
         type_investment='STOCK',

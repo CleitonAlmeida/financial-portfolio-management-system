@@ -204,11 +204,15 @@ class StockTransactionAdmin(TransactionAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
-        if change:
-            return super().save_model(request, obj, form, change)
         if 'type_investment' in form.cleaned_data:
             form.cleaned_data.pop('type_investment')
-        create_stock_transaction(user=request.user,**form.cleaned_data)
+        if change:
+            create_stock_transaction(user=request.user,
+                id=obj.pk,
+                **form.cleaned_data)
+        else:
+            create_stock_transaction(user=request.user,
+                **form.cleaned_data)
 
 class FiiTransactionAdmin(TransactionAdmin):
     form = TransactionForm
@@ -218,11 +222,15 @@ class FiiTransactionAdmin(TransactionAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
-        if change:
-            return super().save_model(request, obj, form, change)
         if 'type_investment' in form.cleaned_data:
             form.cleaned_data.pop('type_investment')
-        create_fii_transaction(user=request.user,**form.cleaned_data)
+        if change:
+            create_stock_transaction(user=request.user,
+                id=obj.pk,
+                **form.cleaned_data)
+        else:
+            create_stock_transaction(user=request.user,
+                **form.cleaned_data)
 
 admin.site.register(AssetType)
 admin.site.register(Asset, AssetAdmin)
