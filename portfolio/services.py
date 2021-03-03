@@ -30,6 +30,11 @@ from portfolio.selectors import (
     get_assets_consolidated,
     get_assets
 )
+from portfolio.constants import (
+    TypeTransactions,
+    CurrencyChoices,
+    StockBrokerChoices
+)
 from typing import (
     Optional,
     Union,
@@ -42,26 +47,6 @@ import datetime
 from enum import Enum
 import requests, json, re
 
-class TypeTransaction(Enum):
-    Buy = 'C'
-    Sell = 'V'
-    Dividend = 'Div'
-    JCP = 'JCP'
-TypeTransactions = NewType('TypeTransactions', TypeTransaction)
-
-class CurrencyChoice(Enum):
-    Reais = 'R$'
-    Dolar = '$'
-    Euro = '€'
-CurrencyChoices = NewType('CurrencyChoices', CurrencyChoice)
-
-class StockBrokerChoice(Enum):
-    Clear = 'CL'
-    XP = 'XP'
-    Rico = 'RI'
-    Avenue = 'AV'
-    TDAmeritrade = 'TD'
-StockBrokerChoices = NewType('StockBrokerChoices', StockBrokerChoice)
 
 def _test_permissions(
     *,
@@ -135,7 +120,7 @@ def create_asset(
     ticker: str,
     type_investment: Optional[AssetType] = None,
     name: str = None,
-    currency: Optional[CurrencyChoices]=CurrencyChoice.Reais.value,
+    currency: str=CurrencyChoices.REAL.value,
     current_price: Optional[Decimal] = 0.0,
     desc_1: str = None,
     desc_2: str = None,
@@ -187,17 +172,17 @@ def create_transaction(
     *,
     id: Optional[int] = 0,
     portfolio: Portfolio,
-    type_transaction: TypeTransactions,
+    type_transaction: str,
     type_investment: Union[str,AssetType] = None,
     transaction_date: datetime = timezone.now(),
     asset: Union[str, Asset],
     quantity: Union[int,float,Decimal],
     unit_cost: Union[int,float,Decimal],
-    currency: Optional[CurrencyChoices]=CurrencyChoice.Reais.value,
+    currency: str=CurrencyChoices.REAL.value,
     other_costs: Union[int,float,Decimal] = Decimal('0.0'),
     desc_1:str = None,
     desc_2:str = None,
-    stockbroker: Optional[StockBrokerChoices] = StockBrokerChoice.Rico.value,
+    stockbroker: str = StockBrokerChoices.RI.value,
 ) -> Transaction:
 
     params = {'ticker': asset}
@@ -246,16 +231,16 @@ def create_fii_transaction(
     user: User,
     id: Optional[int] = 0,
     portfolio: Portfolio,
-    type_transaction: TypeTransactions,
+    type_transaction: str,
     transaction_date: datetime = timezone.now(),
     asset: Union[str, Asset],
     quantity: Union[int,float,Decimal],
     unit_cost: Union[int,float,Decimal],
-    currency: Union[CurrencyChoices]=CurrencyChoice.Reais.value,
+    currency: str=CurrencyChoices.REAL.value,
     other_costs: Union[int,float,Decimal] = Decimal('0.0'),
     desc_1:str = None,
     desc_2:str = None,
-    stockbroker: Optional[StockBrokerChoices] = StockBrokerChoice.Rico.value,
+    stockbroker: str = StockBrokerChoices.RI.value,
 ) -> Transaction:
     _test_permissions(user=user,permission='add_fiitransaction')
     if isinstance(asset, str):
@@ -285,16 +270,16 @@ def create_stock_transaction(
     user: User,
     id: Optional[int] = 0,
     portfolio: Portfolio,
-    type_transaction: TypeTransactions,
+    type_transaction: str,
     transaction_date: datetime = timezone.now(),
     asset: Union[str, Asset],
     quantity: Union[int,float,Decimal],
     unit_cost: Union[int,float,Decimal],
-    currency: Optional[CurrencyChoices]=CurrencyChoice.Reais.value,
+    currency: str=CurrencyChoices.REAL.value,
     other_costs: Union[int,float,Decimal] = Decimal('0.0'),
     desc_1:str = None,
     desc_2:str = None,
-    stockbroker: Optional[StockBrokerChoices] = StockBrokerChoice.Rico.value,
+    stockbroker: str = StockBrokerChoices.RI.value,
 ) -> Transaction:
     _test_permissions(user=user,permission='add_stocktransaction')
 
@@ -328,8 +313,8 @@ def get_qty_asset(
     qs = get_transactions_asset(portfolio=portfolio, asset=asset)
     qs = qs.annotate(
         qty=Case(
-            When(type_transaction=TypeTransaction.Buy.value, then=F('quantity')),
-            When(type_transaction=TypeTransaction.Sell.value, then=F('quantity')*-1),
+            When(type_transaction=TypeTransactions.BUY.value, then=F('quantity')),
+            When(type_transaction=TypeTransactions.SELL.value, then=F('quantity')*-1),
         )
     )
     qs = qs.aggregate(Sum(F('qty')))
@@ -343,10 +328,10 @@ def get_total_cost_asset(
     qs = get_transactions_asset(portfolio=portfolio, asset=asset)
     qs = qs.annotate(
         qty=Case(
-            When(type_transaction=TypeTransaction.Buy.value, then=(
+            When(type_transaction=TypeTransactions.BUY.value, then=(
                 ((F('unit_cost') * F('quantity')) + F('other_costs'))*-1
             )),
-            When(type_transaction=TypeTransaction.Sell.value, then=(
+            When(type_transaction=TypeTransactions.SELL.value, then=(
                 (F('unit_cost') * F('quantity')) - F('other_costs')
             )),
         )
@@ -361,7 +346,7 @@ def get_total_buy_transactions(
     filters=None
 ) -> Decimal:
     filters = filters or {}
-    filters['type_transaction'] = TypeTransaction.Buy.value
+    filters['type_transaction'] = TypeTransactions.BUY.value
     qs = get_transactions(portfolio=portfolio, filters=filters)
     qs = qs.annotate(
         total=(F('unit_cost') * F('quantity')) - F('other_costs')
@@ -376,7 +361,7 @@ def get_total_sell_transactions(
     filters=None
 ) -> Decimal:
     filters = filters or {}
-    filters['type_transaction'] = TypeTransaction.Sell.value
+    filters['type_transaction'] = TypeTransactions.SELL.value
     qs = get_transactions(portfolio=portfolio, filters=filters)
     qs = qs.annotate(
         total=(F('unit_cost') * F('quantity')) - F('other_costs')
@@ -391,8 +376,7 @@ def get_total_dividend_asset(
     asset: Asset
 ) -> Decimal:
     qs = get_transactions_asset(portfolio=portfolio, asset=asset)
-    qs = qs.filter(Q(type_transaction=TypeTransaction.Dividend.value)|
-        Q(type_transaction=TypeTransaction.JCP.value))
+    qs = qs.filter(type_transaction=TypeTransactions.DIVIDEND.value)
     qs = qs.annotate(div=(F('unit_cost') * F('quantity')) - F('other_costs'))
     qs = qs.aggregate(Sum(F('div')))
     return qs['div__sum'] if qs['div__sum'] is not None else Decimal(0)
@@ -403,8 +387,7 @@ def get_total_dividend_asset_nczp(
     asset: Asset
 ) -> Decimal:
     qs = get_transactions_asset_nczp(portfolio=portfolio, asset=asset)
-    qs = qs.filter(Q(type_transaction=TypeTransaction.Dividend.value)|
-        Q(type_transaction=TypeTransaction.JCP.value))
+    qs = qs.filter(type_transaction=TypeTransactions.DIVIDEND.value)
     qs = qs.annotate(div=(F('unit_cost') * F('quantity')) - F('other_costs'))
     qs = qs.aggregate(Sum(F('div')))
     return qs['div__sum'] if qs['div__sum'] is not None else Decimal(0)
@@ -445,7 +428,7 @@ def get_avg_purchase_price(
     asset: Asset
 ) -> Decimal:
     qs = get_transactions_asset(portfolio=portfolio, asset=asset)
-    qs = qs.filter(type_transaction = TypeTransaction.Buy.value)
+    qs = qs.filter(type_transaction = TypeTransactions.BUY.value)
     qs = qs.aggregate(
             avg_pp=Sum((F('unit_cost') * F('quantity')) + F('other_costs'))/
                 Sum(F('quantity'))
@@ -458,7 +441,7 @@ def get_avg_purchase_price_nczp(
     asset: Asset
 ) -> Decimal:
     qs = get_transactions_asset_nczp(portfolio=portfolio, asset=asset)
-    qs = qs.filter(type_transaction = TypeTransaction.Buy.value)
+    qs = qs.filter(type_transaction = TypeTransactions.BUY.value)
     qs = qs.aggregate(
             avg_pp=Sum((F('unit_cost') * F('quantity')) + F('other_costs'))/
                 Sum(F('quantity'))
@@ -471,7 +454,7 @@ def get_avg_sale_price(
     asset: Asset
 ) -> Decimal:
     qs = get_transactions_asset(portfolio=portfolio, asset=asset)
-    qs = qs.filter(type_transaction = TypeTransaction.Sell.value)
+    qs = qs.filter(type_transaction = TypeTransactions.SELL.value)
     qs = qs.aggregate(
             avg_sp=Sum((F('unit_cost') * F('quantity')) - F('other_costs'))/
                 Sum(F('quantity'))
@@ -484,7 +467,7 @@ def get_avg_sale_price_nczp(
     asset: Asset
 ) -> Decimal:
     qs = get_transactions_asset_nczp(portfolio=portfolio, asset=asset)
-    qs = qs.filter(type_transaction = TypeTransaction.Sell.value)
+    qs = qs.filter(type_transaction = TypeTransactions.SELL.value)
     qs = qs.aggregate(
             avg_sp=Sum((F('unit_cost') * F('quantity')) - F('other_costs'))/
                 Sum(F('quantity'))
@@ -731,6 +714,6 @@ def validate_currency(
     *,
     currency: str
 ) -> bool:
-    if currency in CurrencyChoice._value2member_map_:
+    if currency in CurrencyChoices.choices:
         return True
     return False

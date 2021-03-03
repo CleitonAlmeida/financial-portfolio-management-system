@@ -3,25 +3,8 @@ from django.contrib.auth.models import User
 from django.db.models import Sum, F, Case, When
 from django.core import exceptions
 from decimal import Decimal
+from portfolio import constants
 import requests
-
-Buy = ('C', 'Compra')
-Sell = ('V', 'Venda')
-Dividend = ('Div', 'Dividendo')
-JCP = ('Jcp', 'Juros s/ Capital')
-
-type_transactions = [
-    Buy,
-    Sell,
-    Dividend,
-    JCP,
-]
-
-currency_choices = [
-    ('R$', 'Reais'),
-    ('$', 'Dolar'),
-    ('€', 'Euro'),
-]
 
 class Portfolio(models.Model):
 
@@ -57,8 +40,8 @@ class Asset(models.Model):
     ticker = models.CharField(max_length=7, unique=True)
     currency = models.CharField(
         max_length=5,
-        choices = currency_choices,
-        default = currency_choices[0][0])
+        choices = constants.CurrencyChoices.choices,
+        default = constants.CurrencyChoices.REAL)
     current_price = models.DecimalField(max_digits=12,
         decimal_places=5,
         default=Decimal(0))
@@ -95,14 +78,6 @@ class Asset(models.Model):
 
 class Transaction(models.Model):
 
-    stockbroker_choices = [
-        ('CL', 'Clear'),
-        ('XP', 'XP Investimentos'),
-        ('RI', 'Rico'),
-        ('AV', 'Avenue'),
-        ('TD', 'TD Ameritrade'),
-    ]
-
     def __str__(self):
         return "%s %s %s" % (self.type_transaction,
             self.asset,
@@ -112,7 +87,7 @@ class Transaction(models.Model):
         null=True)
     type_transaction = models.CharField(
         max_length=3,
-        choices = type_transactions,
+        choices = constants.TypeTransactions.choices,
         null=False)
     transaction_date = models.DateTimeField()
     type_investment = models.ForeignKey(AssetType, on_delete=models.PROTECT, null=False)
@@ -121,15 +96,15 @@ class Transaction(models.Model):
     unit_cost = models.DecimalField(max_digits=12, decimal_places=5)
     currency = models.CharField(
         max_length=5,
-        choices = currency_choices,
-        default = currency_choices[0][0])
+        choices = constants.CurrencyChoices.choices,
+        default = constants.CurrencyChoices.REAL)
     other_costs = models.DecimalField(max_digits=8, decimal_places=5,
         blank=True, default=0)
     desc_1 = models.CharField(max_length=20, blank=True, null=True)
     desc_2 = models.CharField(max_length=100, blank=True, null=True)
     stockbroker = models.CharField(
         max_length=2,
-        choices = stockbroker_choices,
+        choices = constants.StockBrokerChoices.choices,
         blank=True,
         null=True)
     consolidated = models.BooleanField(default=False)
@@ -143,8 +118,8 @@ class PortfolioConsolidated(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     currency = models.CharField(
         max_length=5,
-        choices = currency_choices,
-        default = currency_choices[0][0])
+        choices = constants.CurrencyChoices.choices,
+        default = constants.CurrencyChoices.REAL)
     total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
     total_cost_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
     total_dividend =  models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
@@ -162,8 +137,8 @@ class PortfolioAssetConsolidated(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.PROTECT)
     currency = models.CharField(
         max_length=5,
-        choices = currency_choices,
-        default = currency_choices[0][0])
+        choices = constants.CurrencyChoices.choices,
+        default = constants.CurrencyChoices.REAL)
     quantity = models.DecimalField(max_digits=12, decimal_places=5, default=Decimal(0))
     avg_p_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))
     avg_p_price_nczp = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(0))

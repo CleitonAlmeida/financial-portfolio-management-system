@@ -13,6 +13,9 @@ from portfolio.models import (
     PortfolioConsolidated,
     PortfolioAssetConsolidated
 )
+from portfolio.constants import (
+    TypeTransactions
+)
 from typing import Iterable
 
 def get_portfolios(
@@ -150,8 +153,12 @@ def get_transactions_asset_nczp(
                         AND asset_id = %s)
         SELECT td.date_t,
                Sum(CASE
-                     WHEN pt.type_transaction = \'V\' THEN pt.quantity * -1
-                     WHEN pt.type_transaction = \'C\' THEN pt.quantity
+                     WHEN pt.type_transaction = \''''+
+                        TypeTransactions.BUY.value +
+                        '''\' THEN pt.quantity * -1
+                     WHEN pt.type_transaction = \''''+
+                        TypeTransactions.SELL.value +
+                        '''\' THEN pt.quantity
                      ELSE NULL
                    END) AS qty
         FROM   portfolio_transaction pt,
@@ -161,8 +168,12 @@ def get_transactions_asset_nczp(
                AND pt.transaction_date <= td.date_t
         GROUP  BY td.date_t
         HAVING Sum(CASE
-                     WHEN pt.type_transaction = \'V\' THEN pt.quantity * -1
-                     WHEN pt.type_transaction = \'C\' THEN pt.quantity
+                     WHEN pt.type_transaction = \''''+
+                        TypeTransactions.BUY.value +
+                        '''\' THEN pt.quantity * -1
+                     WHEN pt.type_transaction = \''''+
+                        TypeTransactions.SELL.value + 
+                        '''\' THEN pt.quantity
                      ELSE NULL
                    END) = 0
         ORDER  BY td.date_t DESC
@@ -192,10 +203,10 @@ def get_current_assets_portfolio(
     qs = get_transactions(portfolio=portfolio, filters=filters)
     qs = qs.annotate(
         qty=Case(
-            When(type_transaction='C', then=(
+            When(type_transaction=TypeTransactions.BUY.value, then=(
                 F('quantity')
             )),
-            When(type_transaction='V', then=(
+            When(type_transaction=TypeTransactions.SELL.value, then=(
                 F('quantity')*-1
             )),
         )
