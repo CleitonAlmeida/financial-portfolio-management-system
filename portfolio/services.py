@@ -96,11 +96,11 @@ def task_refresh_price(
     ticker: str
 ):
     from portfolio.tasks import refresh_current_price as refresh
-    refresh.delay(ticker)
+    refresh(ticker)
 
 def task_refresh_all_prices():
     from portfolio.tasks import refresh_assets_prices
-    refresh_assets_prices.delay()
+    refresh_assets_prices()
 
 def get_or_create_asset_type(
     *,
