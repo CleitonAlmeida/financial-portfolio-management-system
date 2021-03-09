@@ -41,7 +41,7 @@ CELERY_CONFIG = {
 CELERY_CONFIG.update(
     **{
         "broker_url": config("CELERY_BROKER_URL"),
-        "result_backend": config("CELERY_RESULT_BACKEND_URL"),
+        #"result_backend": config("CELERY_RESULT_BACKEND_URL"),
     }
 )
 
@@ -49,16 +49,17 @@ CELERY_CONFIG.update(
 app.conf.update(CELERY_CONFIG)
 
 #app.autodiscover_tasks(packages={"portfolio.tasks"})
-app.autodiscover_tasks(lambda: [n.name for n in apps.get_app_configs()])
+#app.autodiscover_tasks(lambda: [n.name for n in apps.get_app_configs()])
 
 app.conf.beat_schedule = {
     'add-every-15-minutes': {
-        'task': 'portfolio.tasks.refresh_assets_prices',
+        'task': 'refresh_assets_prices',
         #'schedule': 300.0,
         'schedule': crontab(
-            minute='*/15',
+            minute='*/1',
             hour='8-18',
-            day_of_week='mon,tue,wed,thu,fri'),
+            #day_of_week='mon,tue,wed,thu,fri'
+            ),
         'args': None
     },
 }
