@@ -51,6 +51,27 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual(asset.current_price, 123)
         self.assertEqual(asset.pk, id)
 
+    def test_get_asset(self):
+        asset_I = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
+        asset_service = service.FiiService()
+        asset_II = asset_service.get(ticker='XPLG11')
+        self.assertEqual(asset_I.ticker, asset_II.ticker)
+        self.assertEqual(asset_I.type_investment.name, asset_II.type_investment.name)
+
+        with self.assertRaises(ObjectDoesNotExist):
+            teste = asset_service.get(ticker='HHHH')
+
+    def test_get_asset_list(self):
+        asset_I = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
+        asset_II = self.util.get_standard_asset(ticker='HGLG11', type_investment='FII')
+        asset_III = self.util.get_standard_asset(ticker='RBVA11', type_investment='FII')
+
+        result = service.FiiService().get_list()
+        self.assertEqual(len(result), 3)
+
+        result = service.FiiService().get_list(**{'ticker': 'HGLG11'})
+        self.assertEqual(len(result), 1)
+
     def test_delete_asset(self):
         asset = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
         asset_service = service.FiiService(asset)
@@ -58,7 +79,7 @@ class AssetServicesTestCase(TestCase):
 
         asset_service = service.FiiService()
         with self.assertRaises(ObjectDoesNotExist):
-            asset = asset_service.get_list(**{'ticker': 'XPLG11'})
+            asset = asset_service.get(ticker='XPLG11')
 
     def test_create_invalid_currecy(self):
         asset = service.FiiService(
@@ -77,3 +98,12 @@ class AssetServicesTestCase(TestCase):
             asset = asset.save()
         e = exc.exception
         self.assertEqual(e.get_codes(), 'ticker_nonexist')
+
+    def test_create_repeated_ticker(self):
+        asset = self.util.get_standard_asset(ticker='HGLG11', type_investment='FII')
+        asset = service.FiiService(ticker='HGLG11')
+        with self.assertRaises(ValidationError) as exc:
+            asset.save()
+        e = exc.exception
+        self.assertTrue('ticker' in e.detail)
+        self.assertTrue('asset with this ticker already exists' in str(e.detail.get('ticker')[0]))

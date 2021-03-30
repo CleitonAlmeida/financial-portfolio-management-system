@@ -1,49 +1,32 @@
 from django.contrib import admin
-
-# Register your models here.
-from .models import Portfolio, Asset, AssetType, StockTransaction, FiiTransaction
-from django.forms import (
-    ModelChoiceField,
-    CharField,
-    ModelForm,
-    BaseModelForm,
-    TextInput,
-    Textarea,
-    HiddenInput,
-)
-from django.db.models import Sum, F
-from django.core.exceptions import ValidationError
+from portfolio import models
+from django.forms import ModelForm
 from django.utils.html import format_html
-from django.urls import reverse, path
-from django.contrib.admin import AdminSite
+from django.urls import reverse
 from portfolio.selectors import (
     get_portfolios,
     get_fii_transactions_user,
-    get_stock_transactions_user,
-    get_fiis,
-    get_stocks,
+    get_stock_transactions_user
 )
 from portfolio.services import (
     get_total_value_portfolio,
-    create_portfolio,
     create_fii_transaction,
     create_stock_transaction,
-    create_asset,
 )
-from portfolio._services.asset import FiiService, StockService
+from portfolio._services import FiiService, StockService, PortfolioService
 from portfolio.models import Transaction
 
 
 class PortfolioAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
-        obj.owner = request.user
+        save_service = PortfolioService(owner=request.user, **form.cleaned_data)
         if change:
-            create_portfolio(id=obj.pk, owner=request.user, **form.cleaned_data)
+            save_service.update(id=obj.pk)
         else:
-            create_portfolio(owner=request.user, **form.cleaned_data)
+            save_service.save()
 
     def get_queryset(self, request):
-        return get_portfolios(fetched_by=request.user)
+        return PortfolioService(owner=request.user).get_list()
 
     def get_total(obj):
         return "%2.2f" % (get_total_value_portfolio(portfolio=obj))
@@ -68,7 +51,7 @@ class PortfolioAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'desc_1',
-        get_total,
+        #get_total,
         'created_at',
         show_consolidate_link,
         show_view_link,
@@ -85,7 +68,10 @@ class PortfolioAdmin(admin.ModelAdmin):
 class AssetAdmin(admin.ModelAdmin):
 
     change_list_template = 'admin/change_list_with_upload.html'
-    search_fields = ('ticker',)
+    search_fields = (
+        'ticker',
+        'name',
+    )
     exclude = [
         'current_price',
     ]
@@ -267,8 +253,8 @@ class FiiTransactionAdmin(TransactionAdmin):
             create_stock_transaction(user=request.user, **form.cleaned_data)
 
 
-admin.site.register(AssetType)
-admin.site.register(Asset, AssetAdmin)
-admin.site.register(Portfolio, PortfolioAdmin)
-admin.site.register(StockTransaction, StockTransactionAdmin)
-admin.site.register(FiiTransaction, FiiTransactionAdmin)
+admin.site.register(models.AssetType)
+admin.site.register(models.Asset, AssetAdmin)
+admin.site.register(models.Portfolio, PortfolioAdmin)
+admin.site.register(models.StockTransaction, StockTransactionAdmin)
+admin.site.register(models.FiiTransaction, FiiTransactionAdmin)
