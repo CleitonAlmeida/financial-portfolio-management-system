@@ -4,14 +4,18 @@ from django.test import TestCase
 from rest_framework.exceptions import ValidationError
 from portfolio.exceptions import AssetTickerNonExist
 from django.core.exceptions import ObjectDoesNotExist
+from faker import Faker
+from .factories import AssetFiiFactory, AssetStockFactory
 
 
 class AssetServicesTestCase(TestCase):
     def setUp(self):
         self.util = TestUtils()
+        self.fake = Faker()
 
     def test_create_min_asset(self):
-        asset = service.FiiService(ticker='HGLG11', name='Hedge Logistic')
+        asset = service.FiiService(ticker='HGLG11', 
+            name=self.fake.first_name())
         asset = asset.save()
         self.assertIsNotNone(asset.id)
         self.assertEqual(asset.ticker, 'HGLG11')
@@ -31,7 +35,7 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual(asset.current_price, 100)
 
     def test_update_asset(self):
-        asset = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
+        asset = self.util.get_standard_asset(type_investment='FII')
         id = asset.pk
         asset_service = service.FiiService(asset)
         asset_service.name = 'Rio Bravo'
@@ -52,28 +56,26 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual(asset.pk, id)
 
     def test_get_asset(self):
-        asset_I = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
+        asset_I = self.util.get_standard_asset(type_investment='FII')
         asset_service = service.FiiService()
-        asset_II = asset_service.get(ticker='XPLG11')
+        asset_II = asset_service.get(ticker=asset_I.ticker)
         self.assertEqual(asset_I.ticker, asset_II.ticker)
-        self.assertEqual(asset_I.type_investment.name, asset_II.type_investment.name)
+        self.assertEqual(asset_I.type_investment, asset_II.type_investment)
 
         with self.assertRaises(ObjectDoesNotExist):
             teste = asset_service.get(ticker='HHHH')
 
     def test_get_asset_list(self):
-        asset_I = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
-        asset_II = self.util.get_standard_asset(ticker='HGLG11', type_investment='FII')
-        asset_III = self.util.get_standard_asset(ticker='RBVA11', type_investment='FII')
+        a_list = AssetFiiFactory.create_batch(2)
 
         result = service.FiiService().get_list()
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), len(a_list))
 
-        result = service.FiiService().get_list(**{'ticker': 'HGLG11'})
+        result = service.FiiService().get_list(**{'ticker': a_list[0].ticker})
         self.assertEqual(len(result), 1)
 
     def test_delete_asset(self):
-        asset = self.util.get_standard_asset(ticker='XPLG11', type_investment='FII')
+        asset = self.util.get_standard_asset(type_investment='FII')
         asset_service = service.FiiService(asset)
         asset_service.delete(id=asset.pk)
 
@@ -100,8 +102,8 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual(e.get_codes(), 'ticker_nonexist')
 
     def test_create_repeated_ticker(self):
-        asset = self.util.get_standard_asset(ticker='HGLG11', type_investment='FII')
-        asset = service.FiiService(ticker='HGLG11')
+        asset = self.util.get_standard_asset(type_investment='FII')
+        asset = service.FiiService(ticker=asset.ticker)
         with self.assertRaises(ValidationError) as exc:
             asset.save()
         e = exc.exception

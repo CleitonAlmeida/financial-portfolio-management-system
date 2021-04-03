@@ -1,12 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models import Sum, F, Case, When
+from django.db.models import (
+    Sum, F, Case, When, UniqueConstraint
+)
 from django.core import exceptions
 from decimal import Decimal
 from portfolio import constants
 import requests
 
 class Portfolio(models.Model):
+
+    class Meta:
+        constraints = [UniqueConstraint(
+            name='unique_portfolio_name',
+            fields=['owner', 'name'],
+        )]
 
     def __str__(self):
         return "%s" % self.name
@@ -17,7 +25,7 @@ class Portfolio(models.Model):
         return False
 
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=15, unique=True)
+    name = models.CharField(max_length=15)
     desc_1 = models.CharField(max_length=20, blank=True, null=True)
     consolidated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True,
@@ -35,7 +43,9 @@ class Asset(models.Model):
     def __str__(self):
         return "%s - %s" % (self.ticker, self.name)
 
-    type_investment = models.ForeignKey(AssetType, on_delete=models.CASCADE)
+    type_investment = models.CharField(
+        max_length=5,
+        choices = constants.AssetTypes.choices)
     name = models.CharField(max_length=60)
     ticker = models.CharField(max_length=7, unique=True)
     currency = models.CharField(
@@ -55,19 +65,7 @@ class Asset(models.Model):
 
 
     """
-    # TODO:
-    def get_result_c (currency dinheiros)
-    def get_result_p (percentage porcento)
-
-    #especifico stock
-    def get_total_dividend
-    def get_result_with_div_p
-    def get_result_with_div_c
-
-    #especifico fii
-    def get_total_dividend
-    def get_result_with_div_p
-    def get_result_with_div_c
+    # TODO
 
     #transacoes a implementar
         -desdobramento
@@ -116,6 +114,7 @@ class Transaction(models.Model):
 class PortfolioConsolidated(models.Model):
     # *_nczp => No Consider Zeroed Positions
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
+    cache_key = models.CharField(max_length=10, default='')
     currency = models.CharField(
         max_length=5,
         choices = constants.CurrencyChoices.choices,
@@ -135,6 +134,7 @@ class PortfolioAssetConsolidated(models.Model):
     # *_nczp => No Consider Zeroed Positions
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE)
     asset = models.ForeignKey(Asset, on_delete=models.PROTECT)
+    cache_key = models.CharField(max_length=10, default='')
     currency = models.CharField(
         max_length=5,
         choices = constants.CurrencyChoices.choices,

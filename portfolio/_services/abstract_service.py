@@ -6,16 +6,28 @@ from django.core import serializers
 import json
 
 class AbstractService(ABC):
+
+    _instance_serializer = None
+
     def __init__(self, *args, **kwargs):
+        self.instance = self._model()
         if kwargs:
             for i in kwargs:
-                if i in self._attr:
-                    setattr(self, i, kwargs.get(i))
+                setattr(self.instance, i, kwargs.get(i))
 
         if args and isinstance(args[0], self._model):
-            self._obj = args[0]
+            self.instance = args[0]
 
-    # Atributes
+    def __setattr__(self, name, value):
+        if name not in (
+                '_model', 
+                '_serializer', 
+                'instance', 
+                '_instance_serializer'):
+            setattr(self.instance, name, value)
+        else:
+            super().__setattr__(name, value)
+        
     @property
     @abstractmethod
     def _model(self):
@@ -28,23 +40,14 @@ class AbstractService(ABC):
 
     @property
     @abstractmethod
-    def _obj(self):
+    def instance(self):
         pass
 
-    @property
-    @abstractmethod
-    def _attr(self):
-        pass
+    def _test_permissions(self, 
+        user: User, 
+        permission: str, 
+        object: Model = None) -> None:
 
-    # Methods
-    def _fill_obj(self):
-        if not isinstance(self._obj, self._model):
-            self._obj = self._model()
-
-        for attr in self._attr:
-            setattr(self._obj, attr, getattr(self, attr) or getattr(self._obj, attr))
-
-    def _test_permissions(*, user: User, permission: str, object: Model = None) -> None:
         if object is not None:
             app_label = object._meta.app_label
             if hasattr(object, 'test_permission_user'):
@@ -72,32 +75,24 @@ class AbstractService(ABC):
         return qs.filter(**filters)
 
     def save(self):
-        self._fill_obj()
+        self._instance_serializer = self._serializer(
+            data=self._serializer(self.instance).data)
         self.validate()
-        self._obj.save()
-        return self._obj
+        return self._instance_serializer.save()
 
     def update(self, id: int):
-        self._obj = self._model.objects.get(pk=id)
-        self._fill_obj()
+        old = self._model.objects.get(pk=id)
+        self._instance_serializer = self._serializer(old, 
+            data=self._serializer(self.instance).data, 
+            partial=True)
         self.validate()
-        self._obj.save(force_update=True)
-        self._obj.refresh_from_db()
-        return self._obj
+        return self._instance_serializer.update(old, 
+            self._instance_serializer.validated_data)
 
     def delete(self, id: int):
-        self.id = id
-        self._fill_obj()
-        return self._obj.delete()
+        old = self._model.objects.get(pk=id)
+        return old.delete()
 
     @abstractmethod
     def validate(self):
-        data = serializers.serialize('json', [self._obj])
-        data = json.loads(data)
-        data = data[0].get('fields')
-        if self._obj.id:
-            data['id'] = self._obj.id or None
-            serializer = self._serializer(self._obj, data=data)
-        else:
-            serializer = self._serializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        self._instance_serializer.is_valid(raise_exception=True)

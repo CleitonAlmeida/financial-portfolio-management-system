@@ -12,18 +12,14 @@ class AbstractAssetService(AbstractService, metaclass=ABCMeta):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @abstractmethod
-    def _fill_obj(self):
-        super()._fill_obj()
-
     def get(self, ticker: str = None):
-        _ticker = ticker or self.ticker
-        return super().get(ticker=_ticker)
+        return super().get(ticker=ticker)
 
-    def get_ticker_info(self) -> dict:
-        if not self.ticker:
+    def get_ticker_info(self, ticker: str = None) -> dict:
+        _ticker = ticker or self.instance.ticker
+        if not _ticker:
             return {}
-        url = config('SERVICE_ASSET_INFO') + self.ticker
+        url = config('SERVICE_ASSET_INFO') + _ticker
         response = requests.get(url, timeout=(5, 14))
         if response.status_code == 200:
             try:
@@ -40,126 +36,45 @@ class AbstractAssetService(AbstractService, metaclass=ABCMeta):
                 print('exec %s', e)
         return {}
 
-    @property
-    @abstractmethod
-    def id(self):
-        pass
+    def validate(self):
+        if not self.instance.desc_1 or not self.instance.name:
+            info = self.get_ticker_info()
+            self.instance.desc_2 = self.instance.desc_2 or info.get('shortname')[0:51]
+            self.instance.desc_1 = self.instance.desc_1 or info.get('symbol')
+            self.instance.name = self.instance.name or info.get('longname')[0:61]
 
-    @property
-    @abstractmethod
-    def ticker(self):
-        pass
 
-    @property
-    @abstractmethod
-    def name(self):
-        pass
-
-    @property
-    @abstractmethod
-    def currency(self):
-        pass
-
-    @property
-    @abstractmethod
-    def type_investment(self):
-        pass
-
-    @property
-    @abstractmethod
-    def current_price(self):
-        pass
+        self._instance_serializer = self._serializer(
+            data=self._serializer(self.instance).data)
+        super().validate()
 
 
 class FiiService(AbstractAssetService):
 
     _model = Asset
     _serializer = AssetSerializer
-    _obj = None
-    _FII = constants.AssetTypes.FII
-    _attr = [
-        'id',
-        'ticker',
-        'name',
-        'currency',
-        'current_price',
-        'desc_1',
-        'desc_2',
-        'desc_3',
-    ]
-    id = None
-    ticker = None
-    name = None
-    type_investment = None
-    currency = None
-    current_price = None
-    desc_1 = None
-    desc_2 = None
-    desc_3 = None
+    instance = None
+    _FII = constants.AssetTypes.FII.value
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.type_investment = self._FII
-
-    def _fill_obj(self):
-        super()._fill_obj()
-        self._obj.type_investment = AssetType.objects.get(name=self._FII)
-        self._obj.currency = self.currency or constants.CurrencyChoices.REAL.value
-        self._obj.current_price = self.current_price or Decimal(0)
-        info = self.get_ticker_info()
-        self._obj.desc_2 = self.desc_2 or info.get('shortname')
-        self._obj.desc_1 = self.desc_1 or info.get('symbol')
+        self.instance.type_investment = self._FII
 
     def get_list(self, **filters):
         result = super().get_list(**filters)
-        return result.filter(type_investment__name=self._FII)
-
-    def validate(self):
-        super().validate()
-
+        return result.filter(type_investment=self._FII)
 
 class StockService(AbstractAssetService):
 
     _model = Asset
     _serializer = AssetSerializer
-    _obj = None
-    _STOCK = 'STOCK'
-    _attr = [
-        'id',
-        'ticker',
-        'name',
-        'currency',
-        'current_price',
-        'desc_1',
-        'desc_2',
-        'desc_3',
-    ]
-    id = None
-    ticker = None
-    name = None
-    type_investment = None
-    currency = None
-    current_price = None
-    desc_1 = None
-    desc_2 = None
-    desc_3 = None
+    instance = None
+    _STOCK = constants.AssetTypes.STOCK.value
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.type_investment = self._STOCK
-
-    def _fill_obj(self):
-        super()._fill_obj()
-        self._obj.type_investment = AssetType.objects.get(name=self._STOCK)
-        self._obj.currency = self.currency or constants.CurrencyChoices.REAL.value
-        self._obj.current_price = self.current_price or Decimal(0)
-        info = self.get_ticker_info()
-        self._obj.desc_2 = self.desc_2 or info.get('shortname')
-        self._obj.desc_1 = self.desc_1 or info.get('symbol')
+        self.instance.type_investment = self._STOCK
 
     def get_list(self, **filters):
         result = super().get_list(**filters)
-        return result.filter(type_investment__name=self._STOCK)
-
-    def validate(self):
-        super().validate()
+        return result.filter(type_investment=self._STOCK)

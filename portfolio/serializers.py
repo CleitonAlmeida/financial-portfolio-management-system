@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from portfolio.models import Asset, Portfolio
-from rest_framework.validators import UniqueValidator
+from portfolio.models import Asset, Portfolio, Transaction
+from rest_framework.validators import UniqueTogetherValidator
 import logging
 
 class AssetSerializer(serializers.ModelSerializer):
@@ -29,6 +29,17 @@ class PortfolioSerializer(serializers.ModelSerializer):
             'name',
             'owner',
             'desc_1',
+            'consolidated',
             'created_at',
             'last_update',
         ]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Portfolio.objects.all(),
+                fields=['name', 'owner']
+            )
+        ]
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
