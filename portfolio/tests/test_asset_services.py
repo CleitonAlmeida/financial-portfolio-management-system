@@ -14,49 +14,53 @@ class AssetServicesTestCase(TestCase):
         self.fake = Faker()
 
     def test_create_min_asset(self):
-        asset = service.FiiService(ticker='HGLG11', 
-            name=self.fake.first_name())
+        fake = AssetFiiFactory.build()
+        asset = service.FiiService(ticker=fake.ticker, name=fake.name)
         asset = asset.save()
         self.assertIsNotNone(asset.id)
-        self.assertEqual(asset.ticker, 'HGLG11')
+        self.assertEqual(asset.ticker, fake.ticker)
         self.assertEqual(asset.currency, 'R$')
-        self.assertEqual(asset.desc_1, 'HGLG11.SA')
+        self.assertEqual(asset.desc_1, fake.ticker+'.SA')
 
     def test_create_asset(self):
+        fake = AssetFiiFactory.build()
         asset = service.FiiService(
-            ticker='HGLG11', currency='$', name='Hedge Logistic', current_price=100
+            ticker=fake.ticker, 
+            currency=fake.currency, 
+            name=fake.name, 
+            current_price=fake.current_price
         )
         asset = asset.save()
         self.assertIsNotNone(asset.id)
-        self.assertEqual(asset.ticker, 'HGLG11')
-        self.assertEqual(asset.name, 'Hedge Logistic')
-        self.assertEqual(asset.currency, '$')
-        self.assertEqual(asset.desc_1, 'HGLG11.SA')
-        self.assertEqual(asset.current_price, 100)
+        self.assertEqual(asset.ticker, fake.ticker)
+        self.assertEqual(asset.name, fake.name)
+        self.assertEqual(asset.currency, fake.currency)
+        self.assertEqual(asset.desc_1, fake.ticker+'.SA')
+        self.assertEqual(asset.current_price, fake.current_price)
 
     def test_update_asset(self):
-        asset = self.util.get_standard_asset(type_investment='FII')
+        asset = AssetFiiFactory()
         id = asset.pk
+
+        fake = AssetFiiFactory.build()
         asset_service = service.FiiService(asset)
-        asset_service.name = 'Rio Bravo'
-        asset_service.ticker = 'RBVA11'
-        asset_service.currency = '$'
-        asset_service.desc_1 = 'new desc1'
-        asset_service.desc_2 = 'new desc2'
-        asset_service.desc_3 = 'new desc3'
-        asset_service.current_price = 123
+        asset_service.name = fake.name
+        asset_service.ticker = fake.ticker
+        asset_service.currency = fake.currency
+        asset_service.desc_3 = fake.desc_3
+        asset_service.current_price = fake.current_price
         asset = asset_service.update(id=asset.pk)
-        self.assertEqual(asset.name, 'Rio Bravo')
-        self.assertEqual(asset.ticker, 'RBVA11')
-        self.assertEqual(asset.currency, '$')
-        self.assertEqual(asset.desc_1, 'new desc1')
-        self.assertEqual(asset.desc_2, 'new desc2')
-        self.assertEqual(asset.desc_3, 'new desc3')
-        self.assertEqual(asset.current_price, 123)
+        self.assertEqual(asset.name, fake.name)
+        self.assertEqual(asset.ticker, fake.ticker)
+        self.assertEqual(asset.currency, fake.currency)
+        self.assertEqual(asset.desc_1, asset.ticker+'.SA')
+        self.assertIsNotNone(asset.desc_2)
+        self.assertEqual(asset.desc_3, fake.desc_3)
+        self.assertEqual(asset.current_price, fake.current_price)
         self.assertEqual(asset.pk, id)
 
     def test_get_asset(self):
-        asset_I = self.util.get_standard_asset(type_investment='FII')
+        asset_I = AssetFiiFactory()
         asset_service = service.FiiService()
         asset_II = asset_service.get(ticker=asset_I.ticker)
         self.assertEqual(asset_I.ticker, asset_II.ticker)
@@ -66,13 +70,10 @@ class AssetServicesTestCase(TestCase):
             teste = asset_service.get(ticker='HHHH')
 
     def test_get_asset_list(self):
-        a_list = AssetFiiFactory.create_batch(2)
-
+        n = 3
+        a_list = AssetFiiFactory.create_batch(n)
         result = service.FiiService().get_list()
-        self.assertEqual(len(result), len(a_list))
-
-        result = service.FiiService().get_list(**{'ticker': a_list[0].ticker})
-        self.assertEqual(len(result), 1)
+        self.assertEqual(n, len(a_list))
 
     def test_delete_asset(self):
         asset = self.util.get_standard_asset(type_investment='FII')
@@ -84,13 +85,31 @@ class AssetServicesTestCase(TestCase):
             asset = asset_service.get(ticker='XPLG11')
 
     def test_create_invalid_currecy(self):
+        fake = AssetFiiFactory.build()
         asset = service.FiiService(
-            **{'ticker': 'HGLG11', 'name': 'Hedge Logistic', 'currency': 'RR$'}
+            **{
+                'ticker': fake.ticker, 
+                'name': fake.name, 
+                'currency': 'RR$'
+            }
         )
         with self.assertRaises(ValidationError) as exc:
             asset = asset.save()
         e = exc.exception
         self.assertTrue('currency' in e.detail)
+    
+    def test_create_invalid_type_investment(self):
+        fake = AssetFiiFactory.build()
+        asset = service.FiiService(
+            **{
+                'ticker': fake.ticker, 
+                'name': fake.name, 
+                'currency': fake.currency
+            }
+        )
+        asset.type_investment = 'XXXX'
+        asset = asset.save()
+        self.assertEqual(fake.type_investment, asset.type_investment)
 
     def test_create_noexist_ticker(self):
         asset = service.FiiService(
@@ -102,7 +121,7 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual(e.get_codes(), 'ticker_nonexist')
 
     def test_create_repeated_ticker(self):
-        asset = self.util.get_standard_asset(type_investment='FII')
+        asset = AssetFiiFactory()
         asset = service.FiiService(ticker=asset.ticker)
         with self.assertRaises(ValidationError) as exc:
             asset.save()

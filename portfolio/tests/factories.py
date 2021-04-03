@@ -1,8 +1,13 @@
 import factory
 from django.contrib.auth.models import User
+from factory.django import DjangoModelFactory
 from portfolio import models, constants
+from random import shuffle
+from faker import Faker
 
-_TICKER_RAND = {
+_FAKE = Faker()
+
+_TICKER_OPTIONS = {
     'FII':
         {
             'HGLG11': 'CSHG Logistica Fnd de Invstmnt Imblr',
@@ -20,7 +25,7 @@ _TICKER_RAND = {
         }
 }
 
-class UserFactory(factory.django.DjangoModelFactory):
+class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
 
@@ -28,11 +33,11 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.Faker('company_email')
     password = factory.Faker('password', length=20)
 
-class AbstractFactory(factory.django.DjangoModelFactory):
-    created_at = factory.Faker('date_time')
-    last_update = factory.Faker('date_time')
+class DateMixinFactory():
+    created_at = _FAKE.date_time()
+    last_update = _FAKE.date_time()
 
-class PortfolioFactory(AbstractFactory):
+class PortfolioFactory(DateMixinFactory, DjangoModelFactory):
     class Meta:
         model = models.Portfolio
         django_get_or_create = ('name',)
@@ -42,11 +47,13 @@ class PortfolioFactory(AbstractFactory):
     desc_1 = factory.Faker('text', max_nb_chars=20)
     consolidated = factory.Faker('boolean', chance_of_getting_true=50)
 
-class AssetFactory(AbstractFactory):
+class AssetFactory(DateMixinFactory, DjangoModelFactory):
     class Meta:
         model = models.Asset
-        django_get_or_create = ('ticker',)
 
+    name = factory.LazyAttribute(
+        lambda o: _TICKER_OPTIONS[o.type_investment].get(o.ticker)
+        )
     currency = factory.Faker('random_element', 
         elements=constants.CurrencyChoices.values)
     current_price = factory.Faker('pydecimal', 
@@ -56,14 +63,18 @@ class AssetFactory(AbstractFactory):
 
 class AssetFiiFactory(AssetFactory):
     type_investment = constants.AssetTypes.FII.value
-    ticker = factory.Faker('random_element', 
-        elements=[key for key in _TICKER_RAND[type_investment].keys()])
-    name = factory.Faker('random_elements', 
-        elements=[_TICKER_RAND[type_investment].get(ticker)])
+    
+    @factory.iterator
+    def ticker():
+        tlist = list(_TICKER_OPTIONS[constants.AssetTypes.FII.value].keys())
+        shuffle(tlist)
+        return tlist
 
 class AssetStockFactory(AssetFactory):
     type_investment = constants.AssetTypes.STOCK.value
-    ticker = factory.Faker('random_element', 
-        elements=[key for key in _TICKER_RAND[type_investment].keys()])
-    name = factory.Faker('random_elements', 
-        elements=[_TICKER_RAND[type_investment].get(ticker)])
+
+    @factory.iterator
+    def ticker():
+        tlist = list(_TICKER_OPTIONS[constants.AssetTypes.STOCK.value].keys())
+        shuffle(tlist)
+        return tlist

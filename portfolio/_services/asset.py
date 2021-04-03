@@ -11,9 +11,25 @@ import requests, json
 class AbstractAssetService(AbstractService, metaclass=ABCMeta):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.instance.type_investment = self._type_investment
+    
+    def __setattr__(self, name, value):
+        if name == 'type_investment':
+            setattr(self.instance, name, self._type_investment)
+        else:
+            super().__setattr__(name, value)
+
+    @property
+    @abstractmethod
+    def _type_investment(self):
+        pass
 
     def get(self, ticker: str = None):
         return super().get(ticker=ticker)
+    
+    def get_list(self, **filters):
+        result = super().get_list(**filters)
+        return result.filter(type_investment=self._type_investment)
 
     def get_ticker_info(self, ticker: str = None) -> dict:
         _ticker = ticker or self.instance.ticker
@@ -54,27 +70,13 @@ class FiiService(AbstractAssetService):
     _model = Asset
     _serializer = AssetSerializer
     instance = None
-    _FII = constants.AssetTypes.FII.value
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.instance.type_investment = self._FII
-
-    def get_list(self, **filters):
-        result = super().get_list(**filters)
-        return result.filter(type_investment=self._FII)
+    _type_investment = constants.AssetTypes.FII.value
 
 class StockService(AbstractAssetService):
 
     _model = Asset
     _serializer = AssetSerializer
     instance = None
-    _STOCK = constants.AssetTypes.STOCK.value
+    _type_investment = constants.AssetTypes.STOCK.value
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.instance.type_investment = self._STOCK
-
-    def get_list(self, **filters):
-        result = super().get_list(**filters)
-        return result.filter(type_investment=self._STOCK)
+    
