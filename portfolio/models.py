@@ -88,7 +88,6 @@ class Transaction(models.Model):
         choices = constants.TypeTransactions.choices,
         null=False)
     transaction_date = models.DateTimeField()
-    type_investment = models.ForeignKey(AssetType, on_delete=models.PROTECT, null=False)
     asset = models.ForeignKey(Asset, on_delete=models.PROTECT, null=False)
     quantity = models.DecimalField(max_digits=12, decimal_places=5)
     unit_cost = models.DecimalField(max_digits=12, decimal_places=5)

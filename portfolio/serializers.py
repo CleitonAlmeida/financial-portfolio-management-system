@@ -43,3 +43,18 @@ class PortfolioSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
+        fields = [
+            'portfolio',
+            'type_transaction',
+            'transaction_date',
+            'asset',
+            'quantity',
+            'unit_cost',
+            'currency',
+            'other_costs',
+            'desc_1',
+            'desc_2',
+            'stockbroker',
+            'created_at',
+            'last_update',
+        ]

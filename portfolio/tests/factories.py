@@ -42,7 +42,7 @@ class PortfolioFactory(DateMixinFactory, DjangoModelFactory):
         model = models.Portfolio
         django_get_or_create = ('name',)
 
-    owner = None
+    owner = factory.SubFactory(UserFactory)
     name = factory.Faker('first_name')
     desc_1 = factory.Faker('text', max_nb_chars=20)
     consolidated = factory.Faker('boolean', chance_of_getting_true=50)
@@ -78,3 +78,37 @@ class AssetStockFactory(AssetFactory):
         tlist = list(_TICKER_OPTIONS[constants.AssetTypes.STOCK.value].keys())
         shuffle(tlist)
         return tlist
+
+class TransactionFactory(DateMixinFactory, DjangoModelFactory):
+    class Meta:
+        model = models.Transaction
+    
+    portfolio = factory.SubFactory(PortfolioFactory)
+    type_transaction = factory.Faker('random_element', 
+        elements=constants.TypeTransactions.values)
+    transaction_date = _FAKE.date_time()
+    #asset
+    quantity = factory.Faker(
+        'pydecimal',
+        positive=False,
+        left_digits=6, 
+        right_digits=5)
+    unit_cost = factory.Faker('pydecimal', 
+        left_digits=6, 
+        right_digits=5)
+    currency = factory.Faker('random_element', 
+        elements=constants.CurrencyChoices.values)
+    other_costs = factory.Faker('pydecimal', 
+        left_digits=3, 
+        right_digits=5)
+    desc_1 = factory.Faker('text', max_nb_chars=20)
+    desc_2 = factory.Faker('text', max_nb_chars=100)
+    stockbroker = factory.Faker('random_element', 
+        elements=constants.StockBrokerChoices.values)
+    consolidated = factory.Faker('boolean', chance_of_getting_true=50)
+
+class FiiTransactionFactory(TransactionFactory):
+    asset = factory.SubFactory(AssetFiiFactory)
+
+class StockTransactionFactory(TransactionFactory):
+    asset = factory.SubFactory(AssetStockFactory)
