@@ -17,16 +17,6 @@ class AbstractService(ABC):
 
         if args and isinstance(args[0], self._model):
             self.instance = args[0]
-
-    def __setattr__(self, name, value):
-        if name not in (
-                '_model', 
-                '_serializer', 
-                'instance', 
-                '_instance_serializer'):
-            setattr(self.instance, name, value)
-        else:
-            super().__setattr__(name, value)
         
     @property
     @abstractmethod

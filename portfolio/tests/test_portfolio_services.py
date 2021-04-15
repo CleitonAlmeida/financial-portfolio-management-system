@@ -73,9 +73,9 @@ class PortfolioServiceTestCase(TestCase):
         portfolio = self.util.get_standard_portfolio(user=self.user)
         p_service = PortfolioService(owner=self.user, portfolio=portfolio)
         
-        p_service.name = name = self.fake.first_name()
-        p_service.desc_1 = desc_1 = self.fake.text(max_nb_chars=20)
-        p_service.consolidated = consolidated = self.fake.boolean()
+        p_service.instance.name = name = self.fake.first_name()
+        p_service.instance.desc_1 = desc_1 = self.fake.text(max_nb_chars=20)
+        p_service.instance.consolidated = consolidated = self.fake.boolean()
 
         portfolio = p_service.update(id=portfolio.pk)
         self.assertEqual(portfolio.name, name)

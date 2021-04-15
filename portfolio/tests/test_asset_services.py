@@ -44,11 +44,11 @@ class AssetServicesTestCase(TestCase):
 
         fake = AssetFiiFactory.build()
         asset_service = service.FiiService(asset)
-        asset_service.name = fake.name
-        asset_service.ticker = fake.ticker
-        asset_service.currency = fake.currency
-        asset_service.desc_3 = fake.desc_3
-        asset_service.current_price = fake.current_price
+        asset_service.instance.name = fake.name
+        asset_service.instance.ticker = fake.ticker
+        asset_service.instance.currency = fake.currency
+        asset_service.instance.desc_3 = fake.desc_3
+        asset_service.instance.current_price = fake.current_price
         asset = asset_service.update(id=asset.pk)
         self.assertEqual(asset.name, fake.name)
         self.assertEqual(asset.ticker, fake.ticker)
