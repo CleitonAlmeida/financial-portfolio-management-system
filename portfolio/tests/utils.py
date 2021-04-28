@@ -10,7 +10,9 @@ from .factories import (
     UserFactory, 
     PortfolioFactory, 
     AssetFiiFactory, 
-    AssetStockFactory
+    AssetStockFactory,
+    FiiTransactionFactory,
+    StockTransactionFactory
 )
 
 class TestUtils():
@@ -35,3 +37,25 @@ class TestUtils():
         
         asset = facs[type_investment]()
         return asset
+
+    def build_transaction_fake(self, type_investment: str):
+        factories = {
+            AssetTypes.FII.value: FiiTransactionFactory,
+            AssetTypes.STOCK.value: StockTransactionFactory,
+        }
+        fake = factories[type_investment].build()
+
+        user = fake.portfolio.owner
+        user.save()
+
+        portfolio = fake.portfolio
+        portfolio.save()
+        
+        asset = fake.asset
+        asset.save()
+        return {
+            'transaction': fake,
+            'user': user,
+            'portfolio': portfolio,
+            'asset': asset,
+        }
