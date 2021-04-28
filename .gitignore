@@ -2,3 +2,4 @@ media/*
 staticfiles/*
 celerybeat-schedule
 *.pyc
+.help
