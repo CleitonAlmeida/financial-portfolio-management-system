@@ -3,3 +3,4 @@ staticfiles/*
 celerybeat-schedule
 *.pyc
 .help
+.python-version
