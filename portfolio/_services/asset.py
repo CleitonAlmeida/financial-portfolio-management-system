@@ -58,10 +58,12 @@ class AbstractAssetService(AbstractService, metaclass=ABCMeta):
             self.instance.desc_2 = self.instance.desc_2 or info.get('shortname')[0:51]
             self.instance.desc_1 = self.instance.desc_1 or info.get('symbol')
             self.instance.name = self.instance.name or info.get('longname')[0:61]
+            self._instance_serializer = self._serializer(
+                data=self._serializer(self.instance).data)
 
-
-        self._instance_serializer = self._serializer(
-            data=self._serializer(self.instance).data)
+        if not self._instance_serializer:
+            self._instance_serializer = self._serializer(
+                data=self._serializer(self.instance).data)
         super().validate()
 
 

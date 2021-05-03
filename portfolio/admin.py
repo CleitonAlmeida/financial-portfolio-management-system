@@ -16,7 +16,6 @@ from portfolio.services import (
 from portfolio._services import FiiService, StockService, PortfolioService
 from portfolio.models import Transaction
 
-
 class PortfolioAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         save_service = PortfolioService(owner=request.user, **form.cleaned_data)
@@ -111,15 +110,27 @@ class AssetAdmin(admin.ModelAdmin):
             request, queryset, search_term
         )
         return queryset, use_distinct
+    
+    def get_asset_service(self, type_investment):
+        services = {'FII': FiiService, 'STOCK': StockService}
+        return services[type_investment]
 
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
-        save_service = {'FII': FiiService, 'STOCK': StockService}
-        save_service = save_service[obj.type_investment.name](**form.cleaned_data)
+        save_service = self.get_asset_service(obj.type_investment)
+        save_service = save_service(**form.cleaned_data)
         if change:
             save_service.update(id=obj.pk)
         else:
             save_service.save()
+    
+    def delete_model(self, request, obj):
+        delete_service = self.get_asset_service(obj.type_investment)
+        delete_service().delete(obj.pk)
+    
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            self.delete_model(request, obj)
 
 
 class TransactionForm(ModelForm):
