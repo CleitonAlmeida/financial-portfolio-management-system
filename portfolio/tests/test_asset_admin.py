@@ -82,7 +82,7 @@ class AssetAdminTestCase(TestCase):
         assets = AssetStockFactory.build_batch(5)
         data = 'ticker;type_investment;desc_1;desc_2;desc_3;name;'+os.linesep
         for asset in assets:
-            data = data + asset.ticker+';'+asset.type_investment+';sdfgsd;sdfgsd;'+asset.desc_3+';'+asset.name+';'+os.linesep
+            data = data + asset.ticker+';'+asset.type_investment+';'+asset.desc_1+';'+asset.desc_2+';'+asset.desc_3+';'+asset.name+';'+os.linesep
 
         response = self.client.post(
             reverse('asset_upload_file'),
@@ -92,5 +92,7 @@ class AssetAdminTestCase(TestCase):
         for asset in assets:
             item = Asset.objects.get(ticker=asset.ticker)
             self.assertEqual(item.type_investment, asset.type_investment)
+            self.assertEqual(item.desc_1, asset.desc_1)
+            self.assertEqual(item.desc_2, asset.desc_2)
             self.assertEqual(item.desc_3, asset.desc_3)
             self.assertEqual(item.name, asset.name)

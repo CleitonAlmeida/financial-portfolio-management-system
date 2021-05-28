@@ -55,19 +55,24 @@ def asset_upload_file(request):
                 usecols=['ticker',
                     'name',
                     'type_investment',
+                    'desc_1',
+                    'desc_2',
                     'desc_3'])
             row_iter = data_csv.iterrows()
             services = {
                 'FII': asset_service.FiiService,
                 'STOCK': asset_service.StockService
             }
-            for index, row in row_iter:
-                service = services[row['type_investment']]
-                service = service(ticker=row['ticker'],
-                    name=row['name'][0:60],
-                    type_investment=row['type_investment'],
-                    desc_3=row['desc_3'][0:100])
-                service.save()
+            with transaction.atomic():
+                for index, row in row_iter:
+                    service = services[row['type_investment']]
+                    service = service(ticker=row['ticker'],
+                        name=row['name'][0:60],
+                        type_investment=row['type_investment'],
+                        desc_1=row['desc_1'][0:20],
+                        desc_2=row['desc_2'][0:50],
+                        desc_3=row['desc_3'][0:100])
+                    service.save()
 
             fs = FileSystemStorage()
             filename = fs.save(myfile.name, myfile)

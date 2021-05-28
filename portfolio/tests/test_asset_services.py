@@ -39,7 +39,7 @@ class AssetServicesTestCase(TestCase):
         self.assertEqual(asset.current_price, fake.current_price)
 
     def test_update_asset(self):
-        asset = AssetFiiFactory()
+        asset = AssetFiiFactory(desc_1=None)
         id = asset.pk
 
         fake = AssetFiiFactory.build()

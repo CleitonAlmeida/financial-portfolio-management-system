@@ -59,6 +59,8 @@ class AssetFactory(DateMixinFactory, DjangoModelFactory):
     current_price = factory.Faker('pydecimal', 
         left_digits=6, 
         right_digits=5)
+    desc_1 = factory.Faker('text', max_nb_chars=20)
+    desc_2 = factory.Faker('text', max_nb_chars=50)
     desc_3 = factory.Faker('text', max_nb_chars=100)
 
 class AssetFiiFactory(AssetFactory):
