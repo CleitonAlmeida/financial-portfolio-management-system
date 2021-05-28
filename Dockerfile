@@ -1,7 +1,7 @@
 FROM python:3.9.4-slim-buster
 RUN apt update
 
-RUN apt-get install build-essential
+RUN apt-get install -y build-essential
 
 COPY . /code
 WORKDIR /code
