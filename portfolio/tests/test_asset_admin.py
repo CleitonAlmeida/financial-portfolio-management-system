@@ -5,7 +5,7 @@ from django.urls import reverse
 from portfolio.models import Asset
 from .factories import AssetStockFactory
 from django.core.exceptions import ObjectDoesNotExist
-import logging
+import logging, io, os
 
 class AssetAdminTestCase(TestCase):
     def setUp(self):
@@ -77,3 +77,20 @@ class AssetAdminTestCase(TestCase):
             {'post': 'yes'})
         with self.assertRaises(ObjectDoesNotExist):
             cre = Asset.objects.get(ticker=asset.ticker)
+
+    def test_upload_file(self):
+        assets = AssetStockFactory.build_batch(5)
+        data = 'ticker;type_investment;desc_1;desc_2;desc_3;name;'+os.linesep
+        for asset in assets:
+            data = data + asset.ticker+';'+asset.type_investment+';sdfgsd;sdfgsd;'+asset.desc_3+';'+asset.name+';'+os.linesep
+
+        response = self.client.post(
+            reverse('asset_upload_file'),
+            {'myfile': io.StringIO(data)}
+        )
+
+        for asset in assets:
+            item = Asset.objects.get(ticker=asset.ticker)
+            self.assertEqual(item.type_investment, asset.type_investment)
+            self.assertEqual(item.desc_3, asset.desc_3)
+            self.assertEqual(item.name, asset.name)

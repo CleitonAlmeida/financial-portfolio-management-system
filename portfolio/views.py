@@ -19,9 +19,11 @@ from portfolio.selectors import (
     get_assets_consolidated,
     get_current_assets_portfolio
     )
+from portfolio._services import asset as asset_service
 from .forms import AssetUploadFileForm, TransactionUploadFileForm
 import decimal
-import csv, io, datetime
+import csv, io, datetime, logging
+import pandas as pd
 
 def view_portfolio(request, portfolio_id):
     portfolio = get_portfolios(
@@ -46,20 +48,28 @@ def asset_upload_file(request):
     if request.method == 'POST':
         form = AssetUploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            fs = FileSystemStorage()
             myfile = request.FILES['myfile']
-
-            paramFile = io.TextIOWrapper(myfile)
-            portfolio1 = csv.DictReader(paramFile, delimiter=";")
-            list_of_dict = list(portfolio1)
-            for row in list_of_dict:
-                create_asset(ticker=row['ticker'],
-                    name=row['name'],
+            data_csv = pd.read_csv(
+                myfile, 
+                delimiter=';',
+                usecols=['ticker',
+                    'name',
+                    'type_investment',
+                    'desc_3'])
+            row_iter = data_csv.iterrows()
+            services = {
+                'FII': asset_service.FiiService,
+                'STOCK': asset_service.StockService
+            }
+            for index, row in row_iter:
+                service = services[row['type_investment']]
+                service = service(ticker=row['ticker'],
+                    name=row['name'][0:60],
                     type_investment=row['type_investment'],
-                    desc_1=row['desc_1'],
-                    desc_2=row['desc_2'],
-                    desc_3=row['desc_3'])
+                    desc_3=row['desc_3'][0:100])
+                service.save()
 
+            fs = FileSystemStorage()
             filename = fs.save(myfile.name, myfile)
             uploaded_file_url = fs.url(filename)
 
