@@ -13,8 +13,9 @@ from portfolio.services import (
     create_fii_transaction,
     create_stock_transaction,
 )
-from portfolio._services import FiiService, StockService, PortfolioService
+from portfolio._services import FiiService, StockService, PortfolioService, FiiTransactionService, StockTransactionService
 from portfolio.models import Transaction
+import logging
 
 class PortfolioAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
@@ -235,33 +236,41 @@ class TransactionAdmin(admin.ModelAdmin):
 class StockTransactionAdmin(TransactionAdmin):
     form = TransactionForm
 
+    def get_service(self, request):
+        service = StockTransactionService(owner=request.user)
+        return service
+
     def get_queryset(self, request):
-        return get_stock_transactions_user(user=request.user)
+        service = self.get_service(request)
+        return service.get_list()
 
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
-        if 'type_investment' in form.cleaned_data:
-            form.cleaned_data.pop('type_investment')
+        save_service = StockTransactionService(owner=request.user, **form.cleaned_data)
         if change:
-            create_stock_transaction(user=request.user, id=obj.pk, **form.cleaned_data)
+            save_service.update(id=obj.pk)
         else:
-            create_stock_transaction(user=request.user, **form.cleaned_data)
+            save_service.save()
 
 
 class FiiTransactionAdmin(TransactionAdmin):
     form = TransactionForm
 
+    def get_service(self, request):
+        service = FiiTransactionService(owner=request.user)
+        return service
+
     def get_queryset(self, request):
-        return get_fii_transactions_user(user=request.user)
+        service = self.get_service(request)
+        return service.get_list()
 
     def save_model(self, request, obj, form, change):
         obj.owner = request.user
-        if 'type_investment' in form.cleaned_data:
-            form.cleaned_data.pop('type_investment')
+        save_service = FiiTransactionService(owner=request.user, **form.cleaned_data)
         if change:
-            create_stock_transaction(user=request.user, id=obj.pk, **form.cleaned_data)
+            save_service.update(id=obj.pk)
         else:
-            create_stock_transaction(user=request.user, **form.cleaned_data)
+            save_service.save()
 
 
 admin.site.register(models.AssetType)

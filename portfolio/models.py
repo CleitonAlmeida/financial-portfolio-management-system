@@ -76,11 +76,6 @@ class Asset(models.Model):
 
 class Transaction(models.Model):
 
-    def __str__(self):
-        return "%s %s %s" % (self.type_transaction,
-            self.asset,
-            self.transaction_date.strftime("%d%b%Y"))
-
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE,
         null=True)
     type_transaction = models.CharField(
@@ -164,7 +159,7 @@ class PortfolioAssetConsolidated(models.Model):
 class StockManager(models.Manager):
     def get_queryset(self):
         return super(StockManager, self).get_queryset().filter(
-            asset__type_investment__name='STOCK')
+            asset__type_investment='STOCK')
 
 class StockTransaction(Transaction):
     objects = StockManager()
@@ -175,7 +170,7 @@ class StockTransaction(Transaction):
 class FiiManager(models.Manager):
     def get_queryset(self):
         return super(FiiManager, self).get_queryset().filter(
-            asset__type_investment__name='FII')
+            asset__type_investment='FII')
 
 class FiiTransaction(Transaction):
     objects = FiiManager()

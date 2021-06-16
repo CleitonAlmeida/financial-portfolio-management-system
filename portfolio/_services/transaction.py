@@ -1,21 +1,24 @@
 from django.contrib.auth.models import User
 from abc import ABCMeta, abstractmethod
 from . import AbstractService
-from portfolio.models import Transaction
+from portfolio.models import Transaction, Portfolio
 from portfolio.serializers import TransactionSerializer
 from django.core.exceptions import PermissionDenied
 from portfolio import constants
+import logging
 
 class AbstractTransactionService(AbstractService, metaclass=ABCMeta):
 
-    _model = Transaction
     _serializer = TransactionSerializer
+    _owner = None
     instance = None
 
     def __init__(self, owner:User, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if isinstance(owner, User):
-            self.instance.portfolio.owner = owner
+            if isinstance(self.instance.portfolio, Portfolio): 
+                self._owner = self.instance.portfolio.owner
+            self._owner = owner
         else:
             raise PermissionDenied()
     
@@ -27,7 +30,7 @@ class AbstractTransactionService(AbstractService, metaclass=ABCMeta):
     def _default_filters(self, filters):
         filters = filters or {}
         filters['asset__type_investment'] = self._type_investment
-        filters['portfolio__owner__username'] = self.instance.portfolio.owner.username
+        filters['portfolio__owner__username'] = self._owner.username
         return filters
 
     def get(self, **filters):

@@ -113,7 +113,7 @@ class AssetServicesTestCase(TestCase):
 
     def test_create_noexist_ticker(self):
         asset = service.FiiService(
-            **{'ticker': 'XXXX', 'name': 'xxx', 'currency': 'R$'}
+            **{'ticker': 'XYZRT', 'name': 'xxx', 'currency': 'R$'}
         )
         with self.assertRaises(AssetTickerNonExist) as exc:
             asset = asset.save()
